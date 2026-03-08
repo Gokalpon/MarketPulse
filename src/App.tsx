@@ -171,16 +171,14 @@ export default function App() {
   // --- SPLASH SCREEN ---
   if (showSplash) {
     return (
-      <div className={`fixed inset-0 z-[400] bg-[#000000] flex flex-col items-center transition-all duration-700 ${isExitingSplash ? 'opacity-0 scale-110' : 'opacity-100 scale-100'}`}>
+      <div className={`fixed inset-0 z-[400] bg-[#030508] flex flex-col items-center transition-all duration-700 ${isExitingSplash ? 'opacity-0 scale-110' : 'opacity-100 scale-100'}`}>
         
         {/* Background Layers */}
-        <div className="absolute inset-0 z-0">
-          {/* Fallback Image */}
+        <div className="absolute inset-[-20px] z-0">
           <img 
             src={APP_ASSETS.splashBackground} 
             alt="Background" 
-            className="w-full h-full object-cover"
-           
+            className="w-full h-full object-cover scale-110"
           />
         </div>
 
@@ -242,13 +240,13 @@ export default function App() {
   // --- ONBOARDING / LOGIN SCREEN ---
   if (!isLoggedIn) {
     return (
-      <div className="fixed inset-0 z-[300] bg-black overflow-hidden">
+      <div className="fixed inset-0 z-[300] bg-[#030508] overflow-hidden">
         {/* Fixed Background Layer with Animated Image */}
-        <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+        <div className="fixed inset-[-20px] z-0 pointer-events-none overflow-hidden">
           <img 
             src={APP_ASSETS.splashBackground} 
             alt="Background" 
-            className="w-full h-full object-cover opacity-40 scale-110 blur-[1px]"
+            className="w-full h-full object-cover opacity-40 scale-125 blur-[1px]"
            
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/70 to-black" />
@@ -429,7 +427,7 @@ export default function App() {
           </div>
 
           {/* Premium Language Selector */}
-          <div className="relative">
+          <div className="relative z-[50]">
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -443,30 +441,39 @@ export default function App() {
 
             <AnimatePresence>
               {showLanguageMenu && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  className="absolute bottom-full mb-3 left-0 right-0 bg-[#1A1B23]/95 border border-white/[0.08] rounded-2xl p-2 backdrop-blur-2xl shadow-2xl z-50 overflow-hidden grid grid-cols-2 gap-1"
-                >
-                  {["English", "Turkish", "German", "French", "Spanish", "Italian", "Russian", "Chinese"].map((lang) => (
-                    <button
-                      key={lang}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setLanguage(lang);
-                        setShowLanguageMenu(false);
-                      }}
-                      className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 text-left ${
-                        language === lang 
-                          ? "bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.2)]" 
-                          : "text-white/30 hover:text-white/60 hover:bg-white/5"
-                      }`}
-                    >
-                      {lang}
-                    </button>
-                  ))}
-                </motion.div>
+                <>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={(e) => { e.stopPropagation(); setShowLanguageMenu(false); }}
+                    className="fixed inset-0 z-[51]"
+                  />
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 w-[280px] bg-[#0D0E14]/98 border border-white/[0.1] rounded-2xl p-3 backdrop-blur-3xl shadow-[0_-10px_50px_rgba(0,0,0,0.8)] z-[52] grid grid-cols-2 gap-1.5"
+                  >
+                    {["English", "Turkish", "German", "French", "Spanish", "Italian", "Russian", "Chinese"].map((lang) => (
+                      <button
+                        key={lang}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setLanguage(lang);
+                          setShowLanguageMenu(false);
+                        }}
+                        className={`px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 text-center ${
+                          language === lang 
+                            ? "bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.2)]" 
+                            : "text-white/40 hover:text-white/70 hover:bg-white/5"
+                        }`}
+                      >
+                        {lang}
+                      </button>
+                    ))}
+                  </motion.div>
+                </>
               )}
             </AnimatePresence>
           </div>
@@ -502,18 +509,17 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-transparent flex justify-center overflow-x-hidden">
+    <div className="min-h-screen bg-[#030508] flex justify-center overflow-x-hidden">
       {/* Mobile Frame Container */}
       <div 
         className="w-full max-w-[430px] min-h-screen text-white font-sans selection:bg-[#00FFFF]/30 relative shadow-[0_0_100px_rgba(0,0,0,1)] flex flex-col animate-in fade-in duration-700 overflow-hidden"
       >
         {/* Global Background Image */}
-        <div className="absolute inset-0 z-0 pointer-events-none">
+        <div className="absolute inset-[-10px] z-0 pointer-events-none">
           <img 
             src={APP_ASSETS.mainBackground} 
             alt="Global Background" 
-            className="w-full h-full object-cover"
-           
+            className="w-full h-full object-cover scale-105"
           />
         </div>
         
@@ -1349,7 +1355,7 @@ export default function App() {
                     </div>
                   </div>
                   
-                  <div className="relative">
+                  <div className="relative z-[60]">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -1363,30 +1369,39 @@ export default function App() {
 
                     <AnimatePresence>
                       {showLanguageMenu && (
-                        <motion.div
-                          initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                          className="absolute top-full mt-2 left-0 right-0 bg-[#1A1B23]/95 border border-white/[0.08] rounded-xl p-2 backdrop-blur-2xl shadow-2xl z-50 grid grid-cols-2 gap-1"
-                        >
-                          {["English", "Turkish", "German", "French", "Spanish", "Italian", "Russian", "Chinese"].map((lang) => (
-                            <button
-                              key={lang}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setLanguage(lang);
-                                setShowLanguageMenu(false);
-                              }}
-                              className={`px-3 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all duration-300 text-left ${
-                                language === lang 
-                                  ? "bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.15)]" 
-                                  : "text-white/30 hover:text-white/60 hover:bg-white/5"
-                              }`}
-                            >
-                              {lang}
-                            </button>
-                          ))}
-                        </motion.div>
+                        <>
+                          <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={(e) => { e.stopPropagation(); setShowLanguageMenu(false); }}
+                            className="fixed inset-0 z-[61]"
+                          />
+                          <motion.div
+                            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                            className="absolute top-full mt-2 left-0 right-0 bg-[#0D0E14]/98 border border-white/[0.1] rounded-xl p-2.5 backdrop-blur-3xl shadow-[0_10px_50px_rgba(0,0,0,0.8)] z-[62] grid grid-cols-2 gap-1.5"
+                          >
+                            {["English", "Turkish", "German", "French", "Spanish", "Italian", "Russian", "Chinese"].map((lang) => (
+                              <button
+                                key={lang}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setLanguage(lang);
+                                  setShowLanguageMenu(false);
+                                }}
+                                className={`px-3 py-2.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all duration-300 text-center ${
+                                  language === lang 
+                                    ? "bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.15)]" 
+                                    : "text-white/40 hover:text-white/60 hover:bg-white/5"
+                                }`}
+                              >
+                                {lang}
+                              </button>
+                            ))}
+                          </motion.div>
+                        </>
                       )}
                     </AnimatePresence>
                   </div>
