@@ -168,13 +168,15 @@ export default function App() {
       <div className={`fixed inset-0 z-[400] bg-[#030508] flex flex-col items-center transition-all duration-700 ${isExitingSplash ? 'opacity-0 scale-110' : 'opacity-100 scale-100'}`}>
         
         {/* Background Layers */}
-        <div className="absolute inset-[-20px] z-0">
-          <img 
-            src={APP_ASSETS.splashBackground} 
-            alt="Background" 
-            className="w-full h-full object-cover scale-110"
-          />
-        </div>
+        <div 
+          className="absolute inset-0 z-0"
+          style={{ 
+            backgroundImage: `url(${APP_ASSETS.splashBackground})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+          }}
+        />
 
         {/* Logo and Text (Centered iOS Layout) */}
         <div 
@@ -236,12 +238,15 @@ export default function App() {
     return (
       <div className="fixed inset-0 z-[300] bg-[#030508] overflow-hidden">
         {/* Fixed Background Layer with Animated Image */}
-        <div className="fixed inset-[-20px] z-0 pointer-events-none overflow-hidden">
-          <img 
-            src={APP_ASSETS.splashBackground} 
-            alt="Background" 
-            className="w-full h-full object-cover opacity-40 scale-125 blur-[1px]"
-           
+        <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+          <div 
+            className="absolute inset-0 opacity-40 blur-[1px]"
+            style={{ 
+              backgroundImage: `url(${APP_ASSETS.splashBackground})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+            }}
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/70 to-black" />
           
@@ -509,13 +514,15 @@ export default function App() {
         className="w-full max-w-[430px] min-h-screen text-white font-sans selection:bg-[#00FFFF]/30 relative shadow-[0_0_100px_rgba(0,0,0,1)] flex flex-col animate-in fade-in duration-700 overflow-x-hidden"
       >
         {/* Global Background Image */}
-        <div className="absolute inset-[-10px] z-0 pointer-events-none">
-          <img 
-            src={APP_ASSETS.mainBackground} 
-            alt="Global Background" 
-            className="w-full h-full object-cover scale-105"
-          />
-        </div>
+        <div 
+          className="absolute inset-0 z-0 pointer-events-none"
+          style={{ 
+            backgroundImage: `url(${APP_ASSETS.mainBackground})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+          }}
+        />
         
         {/* Header */}
         <header className="absolute top-0 inset-x-0 z-[100] px-6 pt-12 pb-4 bg-black/15 backdrop-blur-[40px] border-b border-white/[0.03]">
