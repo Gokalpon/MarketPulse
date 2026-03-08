@@ -512,7 +512,7 @@ export default function App() {
     <div className="min-h-screen bg-[#030508] flex justify-center overflow-x-hidden">
       {/* Mobile Frame Container */}
       <div 
-        className="w-full max-w-[430px] min-h-screen text-white font-sans selection:bg-[#00FFFF]/30 relative shadow-[0_0_100px_rgba(0,0,0,1)] flex flex-col animate-in fade-in duration-700 overflow-hidden"
+        className="w-full max-w-[430px] min-h-screen text-white font-sans selection:bg-[#00FFFF]/30 relative shadow-[0_0_100px_rgba(0,0,0,1)] flex flex-col animate-in fade-in duration-700 overflow-x-hidden"
       >
         {/* Global Background Image */}
         <div className="absolute inset-[-10px] z-0 pointer-events-none">
@@ -1322,7 +1322,7 @@ export default function App() {
               </div>
 
               <div className="space-y-3">
-              <div className="bg-black/20 border border-white/[0.03] rounded-[24px] overflow-hidden">
+              <div className="bg-black/20 border border-white/[0.03] rounded-[24px]">
                 <div className="p-4 flex items-center justify-between border-b border-white/[0.03]">
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-[#00FFFF]">
