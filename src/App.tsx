@@ -67,9 +67,7 @@ export default function App() {
   const [isExitingSplash, setIsExitingSplash] = useState(false);
   const [isSplashPressed, setIsSplashPressed] = useState(false);
 
-  const [isLoggedIn, setIsLoggedIn] = useState(() => {
-    return localStorage.getItem('isLoggedIn') === 'true';
-  });
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(0);
 
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -115,11 +113,7 @@ export default function App() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
 
-  // Sync state to localStorage
-  useEffect(() => {
-    localStorage.setItem('isLoggedIn', isLoggedIn.toString());
-  }, [isLoggedIn]);
-
+  // Sync watchlist to localStorage
   useEffect(() => {
     localStorage.setItem('watchlistAssets', JSON.stringify(watchlistAssets));
   }, [watchlistAssets]);
@@ -1419,7 +1413,6 @@ export default function App() {
                     onClick: () => {
                       setIsLoggedIn(false);
                       setOnboardingStep(0);
-                      localStorage.removeItem('isLoggedIn');
                     }
                   },
                 ].map((item, i) => (
@@ -1544,7 +1537,7 @@ export default function App() {
                         </span>
                       </div>
                       <span className={`text-[9px] font-black uppercase tracking-tighter px-2 py-1 rounded-md ${
-                        c.sentiment === "Positive" ? "bg-[#39FF14]/10 text-[#39FF14]" : 
+                        c.sentiment === "Positive" ? "bg-[#39FF14] text-black" : 
                         c.sentiment === "Negative" ? "bg-[#E50000] text-black" : "bg-white/10 text-white/70"
                       }`}>
                         {c.sentiment}
