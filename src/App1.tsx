@@ -22,10 +22,7 @@ import {
   List,
   Heart,
   Share2,
-  Newspaper,
-  Send,
-  Edit3,
-  Trash2
+  Newspaper
 } from "lucide-react";
 import { GoogleGenAI } from "@google/genai";
 import { 
@@ -116,73 +113,6 @@ export default function App() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
 
-  // ── USER COMMENT SYSTEM ──
-  const [userComments, setUserComments] = useState<any[]>(() => {
-    try { const s = localStorage.getItem('userComments'); return s ? JSON.parse(s) : []; } catch { return []; }
-  });
-  const [showCommentSheet, setShowCommentSheet] = useState(false);
-  const [commentChartIdx, setCommentChartIdx] = useState<number | null>(null);
-  const [commentText, setCommentText] = useState("");
-  const [commentSentiment, setCommentSentiment] = useState("Neutral");
-  const [chartCrosshair, setChartCrosshair] = useState<{idx: number, price: number, x: number, y: number} | null>(null);
-  const [showMyComments, setShowMyComments] = useState(false);
-
-  useEffect(() => {
-    localStorage.setItem('userComments', JSON.stringify(userComments));
-  }, [userComments]);
-
-  const handleChartTap = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const xPct = ((e.clientX - rect.left) / rect.width) * 100;
-    const idx = Math.round(((xPct - 4) / 92) * (activeData.length - 1));
-    const clampedIdx = Math.max(0, Math.min(activeData.length - 1, idx));
-    const price = activeData[clampedIdx];
-    setChartCrosshair({ idx: clampedIdx, price, x: getX(clampedIdx), y: getY(price) });
-    setSelectedPoint(null);
-  };
-
-  const openCommentSheet = () => {
-    if (!chartCrosshair) return;
-    setCommentChartIdx(chartCrosshair.idx);
-    setCommentText("");
-    setCommentSentiment("Neutral");
-    setShowCommentSheet(true);
-  };
-
-  const submitComment = () => {
-    if (!commentText.trim() || commentChartIdx === null) return;
-    const newComment = {
-      id: Date.now().toString(),
-      assetId: selectedAssetId,
-      timeframe,
-      chartIndex: commentChartIdx,
-      price: activeData[commentChartIdx],
-      text: commentText.trim(),
-      sentiment: commentSentiment,
-      timestamp: new Date().toISOString(),
-      user: "@You",
-      likes: 0,
-    };
-    setUserComments(prev => [newComment, ...prev]);
-    setCommentText("");
-    setShowCommentSheet(false);
-    setChartCrosshair(null);
-  };
-
-  const deleteComment = (id: string) => {
-    setUserComments(prev => prev.filter(c => c.id !== id));
-  };
-
-  const activeUserComments = useMemo(() => 
-    userComments.filter(c => c.assetId === selectedAssetId && c.timeframe === timeframe),
-    [userComments, selectedAssetId, timeframe]
-  );
-
-  const allAssetUserComments = useMemo(() => 
-    userComments.filter(c => c.assetId === selectedAssetId),
-    [userComments, selectedAssetId]
-  );
-
   // Sync watchlist to localStorage
   useEffect(() => {
     localStorage.setItem('watchlistAssets', JSON.stringify(watchlistAssets));
@@ -197,13 +127,7 @@ export default function App() {
   // Reset AI analysis when asset changes
   useEffect(() => {
     setAiAnalysis(null);
-    setChartCrosshair(null);
   }, [selectedAssetId]);
-
-  // Clear crosshair on timeframe change
-  useEffect(() => {
-    setChartCrosshair(null);
-  }, [timeframe]);
 
   const activeData = useMemo(() => activeAsset.data[timeframe as keyof typeof activeAsset.data] || activeAsset.data["1D"], [activeAsset, timeframe]);
   const activeTranslations = MOCK_TRANSLATIONS[selectedAssetId as keyof typeof MOCK_TRANSLATIONS] || [];
@@ -861,7 +785,7 @@ export default function App() {
                   {/* Chart Area */}
                   <div 
                     className="mt-8 relative h-[240px] w-full"
-                    onClick={(e) => { handleChartTap(e); }}
+                    onClick={() => setSelectedPoint(null)}
                   >
                     <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full overflow-visible" preserveAspectRatio="none">
                       <defs>
@@ -877,35 +801,7 @@ export default function App() {
                       
                       <path d={areaD} fill="url(#areaGrad)" />
                       <path d={pathD} fill="none" stroke="url(#lineGrad)" strokeWidth="2" vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" />
-                      
-                      {/* Crosshair vertical line */}
-                      {chartCrosshair && (
-                        <line x1={chartCrosshair.x} y1="0" x2={chartCrosshair.x} y2="100" stroke="white" strokeWidth="0.5" strokeDasharray="2,2" vectorEffect="non-scaling-stroke" opacity="0.3" />
-                      )}
                     </svg>
-
-                    {/* Crosshair Price Marker + Add Comment */}
-                    {chartCrosshair && (
-                      <div className="absolute z-40" style={{ left: `${chartCrosshair.x}%`, top: `${chartCrosshair.y}%`, transform: 'translate(-50%, -50%)' }}>
-                        <div className="w-4 h-4 rounded-full bg-white border-2 border-[#00FFFF] shadow-[0_0_15px_rgba(0,255,255,0.5)]" />
-                        <motion.div 
-                          initial={{ opacity: 0, y: 5, scale: 0.9 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          className="absolute top-6 left-1/2 -translate-x-1/2 whitespace-nowrap flex flex-col items-center gap-2"
-                        >
-                          <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl px-3 py-1.5">
-                            <div className="text-[14px] font-bold text-white">${chartCrosshair.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                          </div>
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); openCommentSheet(); }}
-                            className="flex items-center gap-1.5 bg-gradient-to-r from-[#00FFFF] to-[#39FF14] text-black font-black text-[10px] uppercase tracking-wider px-4 py-2 rounded-xl shadow-[0_0_20px_rgba(0,255,255,0.3)] active:scale-95 transition-transform"
-                          >
-                            <Edit3 className="w-3 h-3" strokeWidth={3} />
-                            {language === "Turkish" ? "Yorum Yaz" : "Add Comment"}
-                          </button>
-                        </motion.div>
-                      </div>
-                    )}
 
                     {/* HTML Overlay for Perfect Circles */}
                     {(showNewsBubbles || showAIConsensus) && activeTranslations
@@ -962,31 +858,6 @@ export default function App() {
                         </div>
                       );
                     })}
-
-                    {/* User Comment Markers */}
-                    {activeUserComments.map((uc) => {
-                      const xPct = getX(uc.chartIndex);
-                      const yPct = getY(activeData[uc.chartIndex] || uc.price);
-                      return (
-                        <div 
-                          key={uc.id}
-                          className="absolute z-25"
-                          style={{ left: `${xPct}%`, top: `${yPct}%`, transform: 'translate(-50%, -50%)' }}
-                        >
-                          <div 
-                            className="p-3 -m-3 cursor-pointer"
-                            onClick={(e) => { 
-                              e.stopPropagation(); 
-                              setShowMyComments(true); 
-                            }}
-                          >
-                            <div className="w-3.5 h-3.5 rounded-full bg-[#FF9500] border-2 border-[#FFD60A] shadow-[0_0_12px_rgba(255,149,0,0.6)] flex items-center justify-center">
-                              <Edit3 className="w-2 h-2 text-black" strokeWidth={3} />
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
                   </div>
                 </div>
               </div>
@@ -1018,16 +889,6 @@ export default function App() {
                     className={`flex-1 px-2 py-2 rounded-xl text-[8px] font-black uppercase tracking-[0.2em] transition-all border ${showAIConsensus ? 'bg-white text-black border-white' : 'bg-white/5 text-white/40 border-white/10'}`}
                   >
                     {showAIConsensus ? t.hideConsensus : t.showConsensus}
-                  </button>
-                  <button 
-                    onClick={() => setShowMyComments(true)}
-                    className={`flex-1 px-2 py-2 rounded-xl text-[8px] font-black uppercase tracking-[0.2em] transition-all border ${
-                      activeUserComments.length > 0 
-                        ? 'bg-[#FF9500] text-black border-[#FF9500]' 
-                        : 'bg-white/5 text-white/40 border-white/10'
-                    }`}
-                  >
-                    {language === "Turkish" ? `Yorumlarım (${allAssetUserComments.length})` : `My Comments (${allAssetUserComments.length})`}
                   </button>
                 </div>
 
@@ -1582,158 +1443,6 @@ export default function App() {
         </AnimatePresence>
       </main>
 
-      {/* ── COMMENT WRITING SHEET ── */}
-      <AnimatePresence>
-        {showCommentSheet && (
-          <>
-            <motion.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setShowCommentSheet(false)}
-              className="absolute inset-0 bg-black/70 backdrop-blur-sm z-[130]"
-            />
-            <motion.div 
-              initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="absolute bottom-0 inset-x-0 z-[135] bg-[#0D0E14]/95 backdrop-blur-3xl border-t border-white/[0.08] rounded-t-[36px] p-6 pb-10 shadow-[0_-20px_60px_rgba(0,0,0,0.9)]"
-            >
-              <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mb-5" />
-              
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#00FFFF]/20 to-[#39FF14]/20 flex items-center justify-center border border-white/10">
-                  <Edit3 className="w-5 h-5 text-[#00FFFF]" />
-                </div>
-                <div>
-                  <div className="text-[13px] font-black text-white uppercase tracking-wider">
-                    {language === "Turkish" ? "Yorum Yaz" : "Write Comment"}
-                  </div>
-                  <div className="text-[11px] text-[#7A7B8D]">
-                    {activeAsset.name} • ${commentChartIdx !== null ? activeData[commentChartIdx]?.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : ""}
-                  </div>
-                </div>
-              </div>
-
-              <div className="mb-4">
-                <div className="text-[9px] font-black text-[#7A7B8D] uppercase tracking-widest mb-2">
-                  {language === "Turkish" ? "Görüşün" : "Your View"}
-                </div>
-                <div className="flex gap-2">
-                  {[
-                    { value: "Positive", label: language === "Turkish" ? "Yükseliş" : "Bullish", color: "bg-[#39FF14] text-black" },
-                    { value: "Neutral", label: language === "Turkish" ? "Nötr" : "Neutral", color: "bg-[#00FFFF] text-black" },
-                    { value: "Negative", label: language === "Turkish" ? "Düşüş" : "Bearish", color: "bg-[#FF3131] text-white" },
-                  ].map(s => (
-                    <button
-                      key={s.value}
-                      onClick={() => setCommentSentiment(s.value)}
-                      className={`flex-1 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all ${
-                        commentSentiment === s.value 
-                          ? `${s.color} shadow-lg` 
-                          : "bg-white/5 text-[#7A7B8D] border border-white/[0.05]"
-                      }`}
-                    >
-                      {s.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mb-5">
-                <textarea 
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  placeholder={language === "Turkish" ? "Bu fiyat noktası hakkında ne düşünüyorsun?" : "What do you think about this price point?"}
-                  className="w-full bg-white/5 border border-white/[0.08] rounded-2xl px-4 py-4 text-[14px] text-white placeholder-white/20 focus:outline-none focus:border-[#00FFFF]/40 resize-none h-[100px] transition-colors"
-                  maxLength={280}
-                />
-                <div className="text-right text-[10px] text-white/20 mt-1 font-bold">{commentText.length}/280</div>
-              </div>
-
-              <button 
-                onClick={submitComment}
-                disabled={!commentText.trim()}
-                className={`w-full py-4 rounded-2xl font-black text-[13px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${
-                  commentText.trim() 
-                    ? "bg-gradient-to-r from-[#00FFFF] to-[#39FF14] text-black shadow-[0_0_30px_rgba(0,255,255,0.3)] active:scale-[0.98]" 
-                    : "bg-white/5 text-white/20"
-                }`}
-              >
-                <Send className="w-4 h-4" strokeWidth={3} />
-                {language === "Turkish" ? "Yayınla" : "Post Comment"}
-              </button>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* ── MY COMMENTS SHEET ── */}
-      <AnimatePresence>
-        {showMyComments && (
-          <>
-            <motion.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setShowMyComments(false)}
-              className="absolute inset-0 bg-black/70 backdrop-blur-sm z-[130]"
-            />
-            <motion.div 
-              initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
-              drag="y" dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0, bottom: 0.5 }}
-              onDragEnd={(_, info) => { if (info.offset.y > 100) setShowMyComments(false); }}
-              transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="absolute bottom-0 inset-x-0 z-[135] bg-[#0D0E14]/95 backdrop-blur-3xl border-t border-white/[0.08] rounded-t-[36px] p-6 pb-10 shadow-[0_-20px_60px_rgba(0,0,0,0.9)] max-h-[70vh] flex flex-col"
-            >
-              <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mb-5 cursor-grab" />
-              
-              <div className="flex items-center justify-between mb-5">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#FF9500]/20 flex items-center justify-center border border-[#FF9500]/30">
-                    <Edit3 className="w-5 h-5 text-[#FF9500]" />
-                  </div>
-                  <div>
-                    <div className="text-[13px] font-black text-white uppercase tracking-wider">
-                      {language === "Turkish" ? "Yorumlarım" : "My Comments"}
-                    </div>
-                    <div className="text-[11px] text-[#7A7B8D]">{activeAsset.name} • {allAssetUserComments.length} {language === "Turkish" ? "yorum" : "comments"}</div>
-                  </div>
-                </div>
-                <button onClick={() => setShowMyComments(false)} className="p-2 bg-white/5 rounded-full">
-                  <X className="w-4 h-4 text-white/40" />
-                </button>
-              </div>
-
-              <div className="flex-1 overflow-y-auto scrollbar-hide space-y-3" onPointerDownCapture={e => e.stopPropagation()}>
-                {allAssetUserComments.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Edit3 className="w-8 h-8 text-white/10 mx-auto mb-3" />
-                    <p className="text-[13px] text-[#7A7B8D]">{language === "Turkish" ? "Henüz yorum yazmadınız." : "No comments yet."}</p>
-                    <p className="text-[11px] text-white/20 mt-1">{language === "Turkish" ? "Grafikte bir noktaya dokunup yorum yazın." : "Tap on the chart to write a comment."}</p>
-                  </div>
-                ) : (
-                  allAssetUserComments.map((uc: any) => (
-                    <div key={uc.id} className="bg-white/5 border border-white/[0.03] rounded-2xl p-4">
-                      <div className="flex justify-between items-start mb-2">
-                        <div className="flex items-center gap-2">
-                          <span className={`text-[9px] font-black uppercase tracking-tighter px-2 py-1 rounded-md ${
-                            uc.sentiment === "Positive" ? "bg-[#39FF14] text-black" : 
-                            uc.sentiment === "Negative" ? "bg-[#FF3131] text-white" : "bg-[#00FFFF] text-black"
-                          }`}>{uc.sentiment}</span>
-                          <span className="text-[10px] text-[#7A7B8D] font-bold">${uc.price?.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-                          <span className="text-[10px] text-white/20">{uc.timeframe}</span>
-                        </div>
-                        <button onClick={() => deleteComment(uc.id)} className="p-1 hover:bg-white/10 rounded-lg transition-colors">
-                          <Trash2 className="w-3.5 h-3.5 text-[#7A7B8D]" />
-                        </button>
-                      </div>
-                      <p className="text-[14px] text-white/80 leading-relaxed">{uc.text}</p>
-                      <div className="text-[9px] text-white/20 mt-2">{new Date(uc.timestamp).toLocaleString()}</div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
       {/* Translation Bottom Sheet */}
       <AnimatePresence>
         {detailedPoint && activeTab === "dashboard" && (
@@ -1852,48 +1561,6 @@ export default function App() {
                 )) : (
                   <div className="text-center text-[#7A7B8D] py-8 text-sm">No comments available for this point.</div>
                 )}
-              </div>
-
-              {/* Quick Comment Input */}
-              <div className="mt-4 pt-4 border-t border-white/[0.05]">
-                <div className="flex gap-2">
-                  <input 
-                    type="text"
-                    value={commentText}
-                    onChange={(e) => setCommentText(e.target.value)}
-                    placeholder={language === "Turkish" ? "Yorumunuzu yazın..." : "Write your comment..."}
-                    className="flex-1 bg-white/5 border border-white/[0.08] rounded-xl px-4 py-3 text-[13px] text-white placeholder-white/20 focus:outline-none focus:border-[#00FFFF]/40"
-                    onPointerDownCapture={e => e.stopPropagation()}
-                    maxLength={280}
-                  />
-                  <button 
-                    onClick={() => {
-                      if (!commentText.trim() || !detailedPoint) return;
-                      const newComment = {
-                        id: Date.now().toString(),
-                        assetId: selectedAssetId,
-                        timeframe,
-                        chartIndex: detailedPoint.idx,
-                        price: activeData[detailedPoint.idx],
-                        text: commentText.trim(),
-                        sentiment: "Neutral",
-                        timestamp: new Date().toISOString(),
-                        user: "@You",
-                        likes: 0,
-                      };
-                      setUserComments(prev => [newComment, ...prev]);
-                      setCommentText("");
-                    }}
-                    disabled={!commentText.trim()}
-                    className={`px-4 rounded-xl flex items-center justify-center transition-all ${
-                      commentText.trim() 
-                        ? "bg-gradient-to-r from-[#00FFFF] to-[#39FF14] text-black active:scale-95" 
-                        : "bg-white/5 text-white/20"
-                    }`}
-                  >
-                    <Send className="w-4 h-4" strokeWidth={3} />
-                  </button>
-                </div>
               </div>
             </motion.div>
           </>
