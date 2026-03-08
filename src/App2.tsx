@@ -49,21 +49,6 @@ const getAIClient = () => {
 
 /* ── COMPONENTS ── */
 
-const NotifToggle = ({ label, desc, defaultOn }: { label: string, desc: string, defaultOn: boolean }) => {
-  const [isOn, setIsOn] = useState(defaultOn);
-  return (
-    <div className="bg-black/20 border border-white/[0.03] rounded-2xl p-4 flex items-center justify-between">
-      <div className="flex-1 mr-4">
-        <div className="font-bold text-[14px] text-white/90">{label}</div>
-        <div className="text-[10px] text-[#7A7B8D] mt-0.5">{desc}</div>
-      </div>
-      <div onClick={() => setIsOn(!isOn)} className={`w-10 h-5 rounded-full p-0.5 cursor-pointer transition-colors flex-shrink-0 ${isOn ? 'bg-[#39FF14]' : 'bg-white/10'}`}>
-        <motion.div animate={{ x: isOn ? 20 : 0 }} className="w-4 h-4 rounded-full bg-white shadow-sm" />
-      </div>
-    </div>
-  );
-};
-
 const Sparkline = ({ data, color }: { data: number[], color: string }) => {
   const min = Math.min(...data);
   const max = Math.max(...data);
@@ -105,7 +90,6 @@ export default function App() {
   const t = TRANSLATIONS[language as keyof typeof TRANSLATIONS] || TRANSLATIONS.English;
 
   const [communityTab, setCommunityTab] = useState("community");
-  const [profilePage, setProfilePage] = useState<string | null>(null);
   const [trendingExpanded, setTrendingExpanded] = useState(false);
   const [commentsExpanded, setCommentsExpanded] = useState(false);
   const [trendingTimeframe, setTrendingTimeframe] = useState("Daily");
@@ -142,14 +126,6 @@ export default function App() {
   const [commentSentiment, setCommentSentiment] = useState("Neutral");
   const [chartCrosshair, setChartCrosshair] = useState<{idx: number, price: number, x: number, y: number} | null>(null);
   const [showMyComments, setShowMyComments] = useState(false);
-  const [commentVotes, setCommentVotes] = useState<Record<string, 'up' | 'down' | null>>({});
-
-  const voteComment = (commentKey: string, direction: 'up' | 'down') => {
-    setCommentVotes(prev => ({
-      ...prev,
-      [commentKey]: prev[commentKey] === direction ? null : direction
-    }));
-  };
 
   useEffect(() => {
     localStorage.setItem('userComments', JSON.stringify(userComments));
@@ -1004,7 +980,9 @@ export default function App() {
                               setShowMyComments(true); 
                             }}
                           >
-                            <div className="w-3.5 h-3.5 rounded-full bg-gradient-to-br from-[#B24BF3] to-[#5B7FFF] border-2 border-[#D4A5FF] shadow-[0_0_12px_rgba(178,75,243,0.6)]" />
+                            <div className="w-3.5 h-3.5 rounded-full bg-[#FF9500] border-2 border-[#FFD60A] shadow-[0_0_12px_rgba(255,149,0,0.6)] flex items-center justify-center">
+                              <Edit3 className="w-2 h-2 text-black" strokeWidth={3} />
+                            </div>
                           </div>
                         </div>
                       );
@@ -1045,7 +1023,7 @@ export default function App() {
                     onClick={() => setShowMyComments(true)}
                     className={`flex-1 px-2 py-2 rounded-xl text-[8px] font-black uppercase tracking-[0.2em] transition-all border ${
                       activeUserComments.length > 0 
-                        ? 'bg-gradient-to-r from-[#B24BF3] to-[#5B7FFF] text-white border-[#B24BF3] shadow-[0_0_15px_rgba(178,75,243,0.3)]' 
+                        ? 'bg-[#FF9500] text-black border-[#FF9500]' 
                         : 'bg-white/5 text-white/40 border-white/10'
                     }`}
                   >
@@ -1466,214 +1444,139 @@ export default function App() {
               exit={{ opacity: 0, x: -20 }}
               className="px-6 pt-10 pb-24"
             >
-              <AnimatePresence mode="wait">
-                {!profilePage ? (
-                  <motion.div key="profile-main" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, x: -20 }}>
-                    {/* Profile Header */}
-                    <div className="flex items-center gap-6 mb-8">
-                      <div className="w-20 h-20 rounded-[32px] bg-gradient-to-tr from-[#B24BF3] to-[#5B7FFF] p-0.5">
-                        <div className="w-full h-full bg-[#0D0E12] rounded-[30px] flex items-center justify-center overflow-hidden">
-                          <img src={APP_ASSETS.tabLogo} alt="Profile" className="w-10 h-10 object-contain opacity-40 grayscale" />
-                        </div>
-                      </div>
-                      <div>
-                        <h2 className="text-2xl font-black tracking-tight uppercase">Gökalp</h2>
-                        <p className="text-sm text-[#7A7B8D]">{t.proMember} • {t.since} 2024</p>
-                      </div>
-                    </div>
+              <div className="flex items-center gap-6 mb-12">
+                <div className="w-20 h-20 rounded-[32px] bg-gradient-to-tr from-[#00FFFF] to-[#39FF14] p-0.5">
+                  <div className="w-full h-full bg-[#0D0E12] rounded-[30px] flex items-center justify-center overflow-hidden">
+                    <img 
+                      src={APP_ASSETS.tabLogo} 
+                      alt="Profile Logo" 
+                      className="w-10 h-10 object-contain opacity-40 grayscale" 
+                      
+                    />
+                  </div>
+                </div>
+                <div>
+                  <h2 className="text-2xl font-black tracking-tight uppercase">Gökalp</h2>
+                  <p className="text-sm text-[#7A7B8D]">{t.proMember} • {t.since} 2024</p>
+                </div>
+              </div>
 
-                    {/* Stats Row */}
-                    <div className="grid grid-cols-3 gap-3 mb-8">
-                      {[
-                        { label: language === "Turkish" ? "Yorum" : "Comments", value: userComments.length, color: "from-[#B24BF3] to-[#5B7FFF]" },
-                        { label: language === "Turkish" ? "İzleme" : "Watchlist", value: watchlistAssets.length, color: "from-[#00FFFF] to-[#39FF14]" },
-                        { label: language === "Turkish" ? "Sabitlenen" : "Pinned", value: pinnedAssets.length, color: "from-[#39FF14] to-[#00FFFF]" },
-                      ].map((stat, i) => (
-                        <div key={i} className="bg-black/20 border border-white/[0.03] rounded-2xl p-4 text-center">
-                          <div className={`text-[22px] font-black bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>{stat.value}</div>
-                          <div className="text-[9px] font-bold text-[#7A7B8D] uppercase tracking-widest mt-1">{stat.label}</div>
-                        </div>
-                      ))}
+              <div className="space-y-3">
+              <div className="bg-black/20 border border-white/[0.03] rounded-[24px]">
+                <div className="p-4 flex items-center justify-between border-b border-white/[0.03]">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-[#00FFFF]">
+                      <Globe className="w-4 h-4" />
                     </div>
+                    <div>
+                      <div className="font-bold text-[14px] text-white/90">{t.autoTranslate}</div>
+                      <div className="text-[10px] text-[#7A7B8D]">{t.translateComments}</div>
+                    </div>
+                  </div>
+                  <div 
+                    onClick={() => setAutoTranslate(!autoTranslate)}
+                    className={`w-10 h-5 rounded-full p-0.5 cursor-pointer transition-colors ${autoTranslate ? 'bg-[#39FF14]' : 'bg-white/10'}`}
+                  >
+                    <motion.div 
+                      animate={{ x: autoTranslate ? 20 : 0 }} 
+                      className="w-4 h-4 rounded-full bg-white shadow-sm"
+                    />
+                  </div>
+                </div>
 
-                    {/* My Comments Quick Access */}
-                    <div 
-                      onClick={() => setProfilePage("comments")}
-                      className="bg-gradient-to-r from-[#B24BF3]/10 to-[#5B7FFF]/10 border border-[#B24BF3]/20 rounded-[24px] p-5 mb-4 cursor-pointer hover:from-[#B24BF3]/15 hover:to-[#5B7FFF]/15 transition-all"
+                <div className="p-4 flex flex-col gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-[#39FF14]">
+                      <MessageCircle className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="font-bold text-[14px] text-white/90">{t.language}</div>
+                      <div className="text-[10px] text-[#7A7B8D]">{t.targetLanguage}</div>
+                    </div>
+                  </div>
+                  
+                  <div className="relative z-[60]">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowLanguageMenu(!showLanguageMenu);
+                      }}
+                      className="w-full flex items-center justify-between bg-white/[0.03] border border-white/[0.08] px-4 py-3 rounded-xl backdrop-blur-xl transition-all hover:bg-white/[0.06]"
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#B24BF3] to-[#5B7FFF] flex items-center justify-center">
-                            <MessageCircle className="w-5 h-5 text-white" />
-                          </div>
-                          <div>
-                            <span className="font-bold text-[15px] text-white">{language === "Turkish" ? "Yorumlarım" : "My Comments"}</span>
-                            <div className="text-[11px] text-[#7A7B8D]">{userComments.length} {language === "Turkish" ? "toplam yorum" : "total comments"}</div>
-                          </div>
-                        </div>
-                        <ChevronRight className="w-4 h-4 text-[#B24BF3]" />
-                      </div>
-                    </div>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-white">{language}</span>
+                      <ChevronDown className={`w-3 h-3 text-white/40 transition-transform duration-300 ${showLanguageMenu ? 'rotate-180' : ''}`} />
+                    </button>
 
-                    {/* Settings */}
-                    <div className="space-y-3">
-                      <div className="bg-black/20 border border-white/[0.03] rounded-[24px] overflow-hidden">
-                        <div className="p-4 flex items-center justify-between border-b border-white/[0.03]">
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-[#00FFFF]"><Globe className="w-4 h-4" /></div>
-                            <div>
-                              <div className="font-bold text-[14px] text-white/90">{t.autoTranslate}</div>
-                              <div className="text-[10px] text-[#7A7B8D]">{t.translateComments}</div>
-                            </div>
-                          </div>
-                          <div onClick={() => setAutoTranslate(!autoTranslate)} className={`w-10 h-5 rounded-full p-0.5 cursor-pointer transition-colors ${autoTranslate ? 'bg-[#39FF14]' : 'bg-white/10'}`}>
-                            <motion.div animate={{ x: autoTranslate ? 20 : 0 }} className="w-4 h-4 rounded-full bg-white shadow-sm" />
-                          </div>
-                        </div>
-                        <div className="p-4">
-                          <div className="flex items-center gap-3 mb-3">
-                            <div className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-[#39FF14]"><MessageCircle className="w-4 h-4" /></div>
-                            <div>
-                              <div className="font-bold text-[14px] text-white/90">{t.language}</div>
-                              <div className="text-[10px] text-[#7A7B8D]">{t.targetLanguage}</div>
-                            </div>
-                          </div>
-                          <div className="relative z-[60]">
-                            <button onClick={(e) => { e.stopPropagation(); setShowLanguageMenu(!showLanguageMenu); }} className="w-full flex items-center justify-between bg-white/[0.03] border border-white/[0.08] px-4 py-3 rounded-xl">
-                              <span className="text-[10px] font-black uppercase tracking-widest text-white">{language}</span>
-                              <ChevronDown className={`w-3 h-3 text-white/40 transition-transform ${showLanguageMenu ? 'rotate-180' : ''}`} />
-                            </button>
-                            <AnimatePresence>
-                              {showLanguageMenu && (
-                                <>
-                                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={(e) => { e.stopPropagation(); setShowLanguageMenu(false); }} className="fixed inset-0 z-[61]" />
-                                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="absolute top-full mt-2 left-0 right-0 bg-[#0D0E14]/98 border border-white/[0.1] rounded-xl p-2.5 backdrop-blur-3xl shadow-[0_10px_50px_rgba(0,0,0,0.8)] z-[62] grid grid-cols-2 gap-1.5">
-                                    {["English", "Turkish", "German", "French", "Spanish", "Italian", "Russian", "Chinese"].map((lang) => (
-                                      <button key={lang} onClick={(e) => { e.stopPropagation(); setLanguage(lang); setShowLanguageMenu(false); }} className={`px-3 py-2.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-center ${language === lang ? "bg-white text-black" : "text-white/40 hover:bg-white/5"}`}>{lang}</button>
-                                    ))}
-                                  </motion.div>
-                                </>
-                              )}
-                            </AnimatePresence>
-                          </div>
-                        </div>
-                      </div>
+                    <AnimatePresence>
+                      {showLanguageMenu && (
+                        <>
+                          <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={(e) => { e.stopPropagation(); setShowLanguageMenu(false); }}
+                            className="fixed inset-0 z-[61]"
+                          />
+                          <motion.div
+                            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                            className="absolute top-full mt-2 left-0 right-0 bg-[#0D0E14]/98 border border-white/[0.1] rounded-xl p-2.5 backdrop-blur-3xl shadow-[0_10px_50px_rgba(0,0,0,0.8)] z-[62] grid grid-cols-2 gap-1.5"
+                          >
+                            {["English", "Turkish", "German", "French", "Spanish", "Italian", "Russian", "Chinese"].map((lang) => (
+                              <button
+                                key={lang}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setLanguage(lang);
+                                  setShowLanguageMenu(false);
+                                }}
+                                className={`px-3 py-2.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all duration-300 text-center ${
+                                  language === lang 
+                                    ? "bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.15)]" 
+                                    : "text-white/40 hover:text-white/60 hover:bg-white/5"
+                                }`}
+                              >
+                                {lang}
+                              </button>
+                            ))}
+                          </motion.div>
+                        </>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </div>
+              </div>
 
-                      {[
-                        { icon: <User className="w-5 h-5" />, title: t.accountSettings, page: "account" },
-                        { icon: <Bell className="w-5 h-5" />, title: t.notifications, page: "notifications" },
-                        { icon: <Shield className="w-5 h-5" />, title: t.privacySecurity, page: "privacy" },
-                        { icon: <LogOut className="w-5 h-5" />, title: t.logout, color: "bg-[#E50000] text-black", onClick: () => { setIsLoggedIn(false); setOnboardingStep(0); } },
-                      ].map((item, i) => (
-                        <div key={i} onClick={item.onClick || (() => item.page && setProfilePage(item.page))} className="bg-black/20 border border-white/[0.03] rounded-[24px] p-5 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors">
-                          <div className="flex items-center gap-4">
-                            <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${item.color || "bg-white/5 text-[#7A7B8D]"}`}>{item.icon}</div>
-                            <span className={`font-bold text-[15px] ${item.color ? "text-[#E50000]" : "text-white/90"}`}>{item.title}</span>
-                          </div>
-                          <ChevronRight className="w-4 h-4 text-white/20" />
-                        </div>
-                      ))}
-                    </div>
-                  </motion.div>
-                ) : profilePage === "comments" ? (
-                  <motion.div key="profile-comments" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                    <button onClick={() => setProfilePage(null)} className="flex items-center gap-2 text-[#7A7B8D] text-[12px] font-bold uppercase tracking-wider mb-6 hover:text-white transition-colors"><ChevronRight className="w-4 h-4 rotate-180" /> Profile</button>
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#B24BF3] to-[#5B7FFF] flex items-center justify-center"><MessageCircle className="w-5 h-5 text-white" /></div>
-                      <div>
-                        <h3 className="text-xl font-black uppercase">{language === "Turkish" ? "Yorumlarım" : "My Comments"}</h3>
-                        <p className="text-[11px] text-[#7A7B8D]">{userComments.length} {language === "Turkish" ? "toplam" : "total"}</p>
+                {[
+                  { icon: <User className="w-5 h-5" />, title: t.accountSettings },
+                  { icon: <Bell className="w-5 h-5" />, title: t.notifications },
+                  { icon: <Shield className="w-5 h-5" />, title: t.privacySecurity },
+                  { 
+                    icon: <LogOut className="w-5 h-5" />, 
+                    title: t.logout, 
+                    color: "bg-[#E50000] text-black",
+                    onClick: () => {
+                      setIsLoggedIn(false);
+                      setOnboardingStep(0);
+                    }
+                  },
+                ].map((item, i) => (
+                  <div 
+                    key={i} 
+                    onClick={item.onClick}
+                    className="bg-black/20 border border-white/[0.03] rounded-[24px] p-5 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${item.color || "bg-white/5 text-[#7A7B8D]"}`}>
+                        {item.icon}
                       </div>
+                      <span className={`font-bold text-[15px] ${item.color ? "text-[#E50000]" : "text-white/90"}`}>{item.title}</span>
                     </div>
-                    {userComments.length === 0 ? (
-                      <div className="text-center py-16">
-                        <MessageCircle className="w-10 h-10 text-white/10 mx-auto mb-3" />
-                        <p className="text-[13px] text-[#7A7B8D]">{language === "Turkish" ? "Henüz yorum yazmadınız." : "No comments yet."}</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {userComments.map((uc: any) => (
-                          <div key={uc.id} className="bg-black/20 border border-white/[0.03] rounded-2xl p-4">
-                            <div className="flex justify-between items-start mb-2">
-                              <div className="flex items-center gap-2">
-                                <span className="text-[12px] font-bold text-white">{ASSETS.find(a => a.id === uc.assetId)?.name || uc.assetId}</span>
-                                <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md ${uc.sentiment === "Positive" ? "bg-[#39FF14] text-black" : uc.sentiment === "Negative" ? "bg-[#FF3131] text-white" : "bg-[#00FFFF] text-black"}`}>{uc.sentiment}</span>
-                              </div>
-                              <button onClick={() => deleteComment(uc.id)} className="p-1 hover:bg-white/10 rounded-lg"><Trash2 className="w-3.5 h-3.5 text-[#7A7B8D]" /></button>
-                            </div>
-                            <p className="text-[14px] text-white/80 leading-relaxed mb-2">{uc.text}</p>
-                            <div className="flex items-center gap-3 text-[10px] text-white/20">
-                              <span>${uc.price?.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-                              <span>{uc.timeframe}</span>
-                              <span>{new Date(uc.timestamp).toLocaleDateString()}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </motion.div>
-                ) : profilePage === "account" ? (
-                  <motion.div key="profile-account" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                    <button onClick={() => setProfilePage(null)} className="flex items-center gap-2 text-[#7A7B8D] text-[12px] font-bold uppercase tracking-wider mb-6 hover:text-white transition-colors"><ChevronRight className="w-4 h-4 rotate-180" /> Profile</button>
-                    <h3 className="text-xl font-black uppercase mb-6">{t.accountSettings}</h3>
-                    <div className="space-y-4">
-                      {[
-                        { label: language === "Turkish" ? "Kullanıcı Adı" : "Username", value: "Gökalp" },
-                        { label: "Email", value: "gokalp@example.com" },
-                        { label: language === "Turkish" ? "Üyelik" : "Membership", value: "Pro" },
-                        { label: language === "Turkish" ? "Katılım Tarihi" : "Joined", value: "2024" },
-                      ].map((field, i) => (
-                        <div key={i} className="bg-black/20 border border-white/[0.03] rounded-2xl p-4">
-                          <div className="text-[9px] font-bold text-[#7A7B8D] uppercase tracking-widest mb-1">{field.label}</div>
-                          <div className="text-[15px] font-bold text-white">{field.value}</div>
-                        </div>
-                      ))}
-                      <button className="w-full py-4 bg-white/5 border border-white/[0.05] rounded-2xl text-[12px] font-black text-white/60 uppercase tracking-widest hover:bg-white/10 transition-colors">
-                        {language === "Turkish" ? "Profili Düzenle" : "Edit Profile"}
-                      </button>
-                    </div>
-                  </motion.div>
-                ) : profilePage === "notifications" ? (
-                  <motion.div key="profile-notif" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                    <button onClick={() => setProfilePage(null)} className="flex items-center gap-2 text-[#7A7B8D] text-[12px] font-bold uppercase tracking-wider mb-6 hover:text-white transition-colors"><ChevronRight className="w-4 h-4 rotate-180" /> Profile</button>
-                    <h3 className="text-xl font-black uppercase mb-6">{t.notifications}</h3>
-                    <div className="space-y-3">
-                      {[
-                        { label: language === "Turkish" ? "Fiyat Uyarıları" : "Price Alerts", desc: language === "Turkish" ? "Fiyat hedefine ulaşıldığında bildirim al" : "Get notified when price targets are hit", defaultOn: true },
-                        { label: language === "Turkish" ? "Yorum Yanıtları" : "Comment Replies", desc: language === "Turkish" ? "Yorumlarına yanıt geldiğinde" : "When someone replies to your comments", defaultOn: true },
-                        { label: language === "Turkish" ? "Piyasa Haberleri" : "Market News", desc: language === "Turkish" ? "Önemli piyasa haberleri" : "Important market news alerts", defaultOn: false },
-                        { label: language === "Turkish" ? "Topluluk Trendleri" : "Community Trends", desc: language === "Turkish" ? "Trend olan tartışmalar" : "Trending discussions", defaultOn: false },
-                        { label: language === "Turkish" ? "Haftalık Özet" : "Weekly Digest", desc: language === "Turkish" ? "Haftalık piyasa özeti" : "Weekly market summary", defaultOn: true },
-                      ].map((item, i) => (
-                        <NotifToggle key={i} label={item.label} desc={item.desc} defaultOn={item.defaultOn} />
-                      ))}
-                    </div>
-                  </motion.div>
-                ) : profilePage === "privacy" ? (
-                  <motion.div key="profile-privacy" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                    <button onClick={() => setProfilePage(null)} className="flex items-center gap-2 text-[#7A7B8D] text-[12px] font-bold uppercase tracking-wider mb-6 hover:text-white transition-colors"><ChevronRight className="w-4 h-4 rotate-180" /> Profile</button>
-                    <h3 className="text-xl font-black uppercase mb-6">{t.privacySecurity}</h3>
-                    <div className="space-y-3">
-                      {[
-                        { label: language === "Turkish" ? "Profil Gizliliği" : "Profile Visibility", desc: language === "Turkish" ? "Profilini kimler görebilir" : "Who can see your profile", defaultOn: true },
-                        { label: language === "Turkish" ? "Yorum Geçmişi" : "Comment History", desc: language === "Turkish" ? "Yorum geçmişini herkese göster" : "Show comment history publicly", defaultOn: false },
-                        { label: language === "Turkish" ? "Konum Verisi" : "Location Data", desc: language === "Turkish" ? "Konum bilgisi paylaşımı" : "Share location with comments", defaultOn: false },
-                        { label: language === "Turkish" ? "Analitik" : "Analytics", desc: language === "Turkish" ? "Kullanım verisi paylaşımı" : "Share usage data for improvements", defaultOn: true },
-                      ].map((item, i) => (
-                        <NotifToggle key={i} label={item.label} desc={item.desc} defaultOn={item.defaultOn} />
-                      ))}
-                      <div className="mt-6 space-y-3">
-                        <button className="w-full py-4 bg-white/5 border border-white/[0.05] rounded-2xl text-[12px] font-black text-white/60 uppercase tracking-widest hover:bg-white/10 transition-colors">
-                          {language === "Turkish" ? "Verileri Dışa Aktar" : "Export Data"}
-                        </button>
-                        <button className="w-full py-4 bg-[#E50000]/10 border border-[#E50000]/20 rounded-2xl text-[12px] font-black text-[#E50000] uppercase tracking-widest hover:bg-[#E50000]/20 transition-colors">
-                          {language === "Turkish" ? "Hesabı Sil" : "Delete Account"}
-                        </button>
-                      </div>
-                    </div>
-                  </motion.div>
-                ) : null}
-              </AnimatePresence>
+                    <ChevronRight className="w-4 h-4 text-white/20" />
+                  </div>
+                ))}
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -1782,8 +1685,8 @@ export default function App() {
               
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#B24BF3]/20 to-[#5B7FFF]/20 flex items-center justify-center border border-[#B24BF3]/30">
-                    <MessageCircle className="w-5 h-5 text-[#B24BF3]" />
+                  <div className="w-10 h-10 rounded-xl bg-[#FF9500]/20 flex items-center justify-center border border-[#FF9500]/30">
+                    <Edit3 className="w-5 h-5 text-[#FF9500]" />
                   </div>
                   <div>
                     <div className="text-[13px] font-black text-white uppercase tracking-wider">
@@ -1800,7 +1703,7 @@ export default function App() {
               <div className="flex-1 overflow-y-auto scrollbar-hide space-y-3" onPointerDownCapture={e => e.stopPropagation()}>
                 {allAssetUserComments.length === 0 ? (
                   <div className="text-center py-12">
-                    <MessageCircle className="w-8 h-8 text-white/10 mx-auto mb-3" />
+                    <Edit3 className="w-8 h-8 text-white/10 mx-auto mb-3" />
                     <p className="text-[13px] text-[#7A7B8D]">{language === "Turkish" ? "Henüz yorum yazmadınız." : "No comments yet."}</p>
                     <p className="text-[11px] text-white/20 mt-1">{language === "Turkish" ? "Grafikte bir noktaya dokunup yorum yazın." : "Tap on the chart to write a comment."}</p>
                   </div>
@@ -1939,37 +1842,12 @@ export default function App() {
                       </span>
                     </div>
                     <p className="text-[14px] text-[#7A7B8D] leading-relaxed">"{c.text}"</p>
-                    <div className="mt-2 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <button 
-                          onClick={() => voteComment(`${detailedPoint?.idx}-${i}`, 'up')}
-                          className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold transition-all ${
-                            commentVotes[`${detailedPoint?.idx}-${i}`] === 'up' 
-                              ? 'bg-[#39FF14]/20 text-[#39FF14]' 
-                              : 'text-[#7A7B8D] hover:bg-white/5'
-                          }`}
-                        >
-                          <TrendingUp className="w-3 h-3" strokeWidth={3} />
-                          {c.likes + (commentVotes[`${detailedPoint?.idx}-${i}`] === 'up' ? 1 : 0)}
-                        </button>
-                        <button 
-                          onClick={() => voteComment(`${detailedPoint?.idx}-${i}`, 'down')}
-                          className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold transition-all ${
-                            commentVotes[`${detailedPoint?.idx}-${i}`] === 'down' 
-                              ? 'bg-[#FF3131]/20 text-[#FF3131]' 
-                              : 'text-[#7A7B8D] hover:bg-white/5'
-                          }`}
-                        >
-                          <TrendingDown className="w-3 h-3" strokeWidth={3} />
-                        </button>
+                    {autoTranslate && (
+                      <div className="mt-2 flex items-center gap-1.5 opacity-50">
+                        <Globe className="w-3 h-3 text-white" />
+                        <span className="text-[9px] font-medium text-white uppercase tracking-wider">Translated to {language}</span>
                       </div>
-                      {autoTranslate && (
-                        <div className="flex items-center gap-1.5 opacity-50">
-                          <Globe className="w-3 h-3 text-white" />
-                          <span className="text-[9px] font-medium text-white uppercase tracking-wider">Translated to {language}</span>
-                        </div>
-                      )}
-                    </div>
+                    )}
                   </div>
                 )) : (
                   <div className="text-center text-[#7A7B8D] py-8 text-sm">No comments available for this point.</div>
@@ -2042,7 +1920,7 @@ export default function App() {
         ].map((tab) => (
           <button 
             key={tab.id}
-            onClick={() => { setActiveTab(tab.id); setSelectedPoint(null); setProfilePage(null); setChartCrosshair(null); }}
+            onClick={() => { setActiveTab(tab.id); setSelectedPoint(null); }}
             className="flex flex-col items-center gap-1.5 relative w-14 group"
           >
             <div className={`transition-all duration-300 ${activeTab === tab.id ? "text-white scale-110" : "text-[#7A7B8D] group-hover:text-white/70"}`}>
