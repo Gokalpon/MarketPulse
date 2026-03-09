@@ -365,8 +365,6 @@ export default function App() {
             }}
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/70 to-black" />
-          
-          />
         </div>
 
         <div className="relative z-10 h-[100dvh] flex flex-col items-center justify-between px-6 pt-10 pb-10 w-full max-w-[430px] mx-auto overflow-hidden">
