@@ -1004,7 +1004,7 @@ export default function App() {
                               setShowMyComments(true); 
                             }}
                           >
-                            <div className="w-3.5 h-3.5 rounded-full bg-[#0A0B0F] border-2 border-[#B24BF3] shadow-[0_0_12px_rgba(178,75,243,0.5)]" />
+                            <div className="w-3.5 h-3.5 rounded-full bg-gradient-to-br from-[#B24BF3] to-[#5B7FFF] shadow-[0_0_12px_rgba(178,75,243,0.6)]" />
                           </div>
                         </div>
                       );
@@ -1043,10 +1043,10 @@ export default function App() {
                   </button>
                   <button 
                     onClick={() => setShowMyComments(true)}
-                    className={`flex-1 px-2 py-2 rounded-xl text-[8px] font-black uppercase tracking-[0.2em] transition-all ${
+                    className={`flex-1 px-2 py-2 rounded-xl text-[8px] font-black uppercase tracking-[0.2em] transition-all border ${
                       activeUserComments.length > 0 
-                        ? 'bg-[#0D0E14] text-[#B24BF3] border-2 border-[#B24BF3] shadow-[0_0_15px_rgba(178,75,243,0.2)]' 
-                        : 'bg-white/5 text-white/40 border border-white/10'
+                        ? 'bg-gradient-to-r from-[#B24BF3] to-[#5B7FFF] text-black border-transparent shadow-[0_0_15px_rgba(178,75,243,0.3)]' 
+                        : 'bg-white/5 text-white/40 border-white/10'
                     }`}
                   >
                     {language === "Turkish" ? `Yorumlarım (${allAssetUserComments.length})` : `My Comments (${allAssetUserComments.length})`}
@@ -1503,8 +1503,8 @@ export default function App() {
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                          <div className="w-11 h-11 rounded-xl bg-[#0D0E14] border-2 border-[#B24BF3] flex items-center justify-center shadow-[0_0_15px_rgba(178,75,243,0.2)]">
-                            <MessageCircle className="w-5 h-5 text-[#B24BF3]" />
+                          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#B24BF3] to-[#5B7FFF] flex items-center justify-center shadow-[0_0_15px_rgba(178,75,243,0.3)]">
+                            <MessageCircle className="w-5 h-5 text-black" />
                           </div>
                           <div>
                             <span className="font-bold text-[15px] text-white">{language === "Turkish" ? "Yorumlarım" : "My Comments"}</span>
@@ -1579,7 +1579,7 @@ export default function App() {
                   <motion.div key="profile-comments" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                     <button onClick={() => setProfilePage(null)} className="flex items-center gap-2 text-[#7A7B8D] text-[12px] font-bold uppercase tracking-wider mb-6 hover:text-white transition-colors"><ChevronRight className="w-4 h-4 rotate-180" /> Profile</button>
                     <div className="flex items-center gap-3 mb-6">
-                      <div className="w-10 h-10 rounded-xl bg-[#0D0E14] border-2 border-[#B24BF3] flex items-center justify-center"><MessageCircle className="w-5 h-5 text-[#B24BF3]" /></div>
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#B24BF3] to-[#5B7FFF] flex items-center justify-center"><MessageCircle className="w-5 h-5 text-black" /></div>
                       <div>
                         <h3 className="text-xl font-black uppercase">{language === "Turkish" ? "Yorumlarım" : "My Comments"}</h3>
                         <p className="text-[11px] text-[#7A7B8D]">{userComments.length} {language === "Turkish" ? "toplam" : "total"}</p>
@@ -1782,8 +1782,8 @@ export default function App() {
               
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#0D0E14] border-2 border-[#B24BF3] flex items-center justify-center shadow-[0_0_12px_rgba(178,75,243,0.2)]">
-                    <MessageCircle className="w-5 h-5 text-[#B24BF3]" />
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#B24BF3] to-[#5B7FFF] flex items-center justify-center shadow-[0_0_12px_rgba(178,75,243,0.3)]">
+                    <MessageCircle className="w-5 h-5 text-black" />
                   </div>
                   <div>
                     <div className="text-[13px] font-black text-white uppercase tracking-wider">
