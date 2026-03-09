@@ -106,6 +106,24 @@ export default function App() {
 
   const [communityTab, setCommunityTab] = useState("community");
   const [profilePage, setProfilePage] = useState<string | null>(null);
+  const [profilePicture, setProfilePicture] = useState<string | null>(() => {
+    try { return localStorage.getItem('profilePicture'); } catch { return null; }
+  });
+
+  const handleProfilePicture = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    setProfilePicture(url);
+    // Also save as data URL for persistence
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      setProfilePicture(result);
+      localStorage.setItem('profilePicture', result);
+    };
+    reader.readAsDataURL(file);
+  };
   const [trendingExpanded, setTrendingExpanded] = useState(false);
   const [commentsExpanded, setCommentsExpanded] = useState(false);
   const [trendingTimeframe, setTrendingTimeframe] = useState("Daily");
@@ -156,6 +174,11 @@ export default function App() {
   }, [userComments]);
 
   const handleChartTap = (e: React.MouseEvent<HTMLDivElement>) => {
+    // If crosshair is visible, close it
+    if (chartCrosshair) {
+      setChartCrosshair(null);
+      return;
+    }
     const rect = e.currentTarget.getBoundingClientRect();
     const xPct = ((e.clientX - rect.left) / rect.width) * 100;
     const idx = Math.round(((xPct - 4) / 92) * (activeData.length - 1));
@@ -288,18 +311,11 @@ export default function App() {
             <div className="relative w-64 h-64 mb-0">
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
-                animate={isSplashPressed ? { opacity: 0, scale: 0.9, filter: "blur(10px)" } : { opacity: 1, y: 0 }}
-                transition={{ duration: 1.4, ease: [0.22, 1, 0.36, 1] }}
+                animate={isSplashPressed ? { opacity: 0, scale: 0.9 } : { opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
                 className="absolute inset-0 flex items-center justify-center"
               >
-                <motion.div 
-                  animate={{ 
-                    scale: [1, 1.15, 1],
-                    opacity: [0.1, 0.2, 0.1]
-                  }}
-                  transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-                  className="absolute inset-0 bg-[#00FFFF]/10 blur-[40px] rounded-full"
-                />
+                <div className="absolute inset-0 bg-[#00FFFF]/8 blur-[30px] rounded-full" />
                 <img 
                   src={APP_ASSETS.splashLogo} 
                   alt="Market Pulse Logo" 
@@ -350,26 +366,6 @@ export default function App() {
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/70 to-black" />
           
-          {/* Decorative Glowing Orbs */}
-          <motion.div 
-            animate={{ 
-              scale: [1, 1.2, 1],
-              opacity: [0.1, 0.2, 0.1],
-              x: [0, 50, 0],
-              y: [0, -30, 0]
-            }}
-            transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-            className="absolute -top-20 -left-20 w-[400px] h-[400px] bg-[#00FFFF]/10 blur-[120px] rounded-full"
-          />
-          <motion.div 
-            animate={{ 
-              scale: [1.2, 1, 1.2],
-              opacity: [0.05, 0.15, 0.05],
-              x: [0, -40, 0],
-              y: [0, 60, 0]
-            }}
-            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-            className="absolute top-1/2 -right-20 w-[350px] h-[350px] bg-[#39FF14]/5 blur-[100px] rounded-full"
           />
         </div>
 
@@ -417,7 +413,7 @@ export default function App() {
                   key="step0"
                   initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.96, filter: "blur(10px)" }}
+                  exit={{ opacity: 0, scale: 0.96 }}
                   transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
                   className="text-center w-full flex flex-col items-center"
                 >
@@ -454,7 +450,7 @@ export default function App() {
                   key="step1"
                   initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, x: -30, filter: "blur(10px)" }}
+                  exit={{ opacity: 0, x: -30 }}
                   transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
                   className="w-full flex flex-col items-center"
                 >
@@ -697,15 +693,16 @@ export default function App() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
               onClick={() => setIsMenuOpen(false)}
-              className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[150]"
+              className="fixed inset-0 bg-black/70 z-[150]"
             />
             <motion.div 
               initial={{ x: "-100%" }}
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="absolute top-0 left-0 bottom-0 w-[300px] bg-black/40 backdrop-blur-2xl border-r border-white/[0.05] z-[160] p-6 flex flex-col"
+              transition={{ type: "tween", duration: 0.25, ease: "easeOut" }}
+              className="absolute top-0 left-0 bottom-0 w-[300px] bg-black/80 backdrop-blur-xl border-r border-white/[0.05] z-[160] p-6 flex flex-col"
             >
               <div className="flex items-center justify-between mb-8 mt-6">
                 <div className="flex items-center gap-2">
@@ -1471,10 +1468,20 @@ export default function App() {
                   <motion.div key="profile-main" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, x: -20 }}>
                     {/* Profile Header */}
                     <div className="flex items-center gap-6 mb-8">
-                      <div className="w-20 h-20 rounded-[32px] bg-gradient-to-tr from-[#00FFFF] to-[#39FF14] p-0.5">
-                        <div className="w-full h-full bg-[#0D0E12] rounded-[30px] flex items-center justify-center overflow-hidden">
-                          <img src={APP_ASSETS.tabLogo} alt="Profile" className="w-10 h-10 object-contain opacity-40 grayscale" />
+                      <div className="relative group cursor-pointer" onClick={() => document.getElementById('profilePicInput')?.click()}>
+                        <div className="w-20 h-20 rounded-[32px] bg-gradient-to-tr from-[#00FFFF] to-[#39FF14] p-0.5">
+                          <div className="w-full h-full bg-[#0D0E12] rounded-[30px] flex items-center justify-center overflow-hidden">
+                            {profilePicture ? (
+                              <img src={profilePicture} alt="Profile" className="w-full h-full object-cover" />
+                            ) : (
+                              <img src={APP_ASSETS.tabLogo} alt="Profile" className="w-10 h-10 object-contain opacity-40 grayscale" />
+                            )}
+                          </div>
                         </div>
+                        <div className="absolute inset-0 rounded-[32px] bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <Edit3 className="w-5 h-5 text-white" />
+                        </div>
+                        <input id="profilePicInput" type="file" accept="image/*" className="hidden" onChange={handleProfilePicture} />
                       </div>
                       <div>
                         <h2 className="text-2xl font-black tracking-tight uppercase">Gökalp</h2>
@@ -1637,13 +1644,39 @@ export default function App() {
                   <motion.div key="profile-notif" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                     <button onClick={() => setProfilePage(null)} className="flex items-center gap-2 text-[#7A7B8D] text-[12px] font-bold uppercase tracking-wider mb-6 hover:text-white transition-colors"><ChevronRight className="w-4 h-4 rotate-180" /> Profile</button>
                     <h3 className="text-xl font-black uppercase mb-6">{t.notifications}</h3>
+                    
+                    {/* Notification Feed */}
+                    <div className="space-y-2 mb-8">
+                      {[
+                        { icon: <TrendingUp className="w-4 h-4" />, color: "bg-[#39FF14] text-black", user: "@CryptoKing", action: language === "Turkish" ? "yorumunu beğendi" : "liked your comment", asset: "BTC", time: "2m" },
+                        { icon: <MessageCircle className="w-4 h-4" />, color: "bg-[#00FFFF] text-black", user: "@WhaleWatch", action: language === "Turkish" ? "yorumuna yanıt verdi" : "replied to your comment", asset: "ETH", time: "15m" },
+                        { icon: <TrendingUp className="w-4 h-4" />, color: "bg-[#39FF14] text-black", user: "@GoldBug", action: language === "Turkish" ? "yorumunu beğendi" : "liked your comment", asset: "GOLD", time: "1h" },
+                        { icon: <Heart className="w-4 h-4" />, color: "bg-gradient-to-r from-[#B24BF3] to-[#5B7FFF] text-black", user: "@DayTrader", action: language === "Turkish" ? "yorumunu beğendi" : "liked your comment", asset: "AAPL", time: "2h" },
+                        { icon: <MessageCircle className="w-4 h-4" />, color: "bg-[#00FFFF] text-black", user: "@MacroEcon", action: language === "Turkish" ? "yorumuna yanıt verdi" : "replied to your comment", asset: "NASDAQ", time: "3h" },
+                        { icon: <TrendingDown className="w-4 h-4" />, color: "bg-[#FF3131] text-white", user: "@BearHunter", action: language === "Turkish" ? "yorumunu beğenmedi" : "downvoted your comment", asset: "TSLA", time: "5h" },
+                        { icon: <Newspaper className="w-4 h-4" />, color: "bg-white text-black", user: "Market Pulse", action: language === "Turkish" ? "BTC için önemli haber" : "Breaking news for BTC", asset: "BTC", time: "6h" },
+                        { icon: <TrendingUp className="w-4 h-4" />, color: "bg-[#39FF14] text-black", user: "@SwingTrader", action: language === "Turkish" ? "yorumunu beğendi" : "liked your comment", asset: "SOL", time: "8h" },
+                      ].map((notif, i) => (
+                        <div key={i} className="bg-black/20 border border-white/[0.03] rounded-2xl p-4 flex items-center gap-3">
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${notif.color}`}>{notif.icon}</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[13px] text-white/90 leading-snug">
+                              <span className="font-bold">{notif.user}</span> {notif.action}
+                            </div>
+                            <div className="text-[10px] text-[#7A7B8D] mt-0.5">{notif.asset} • {notif.time}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Notification Settings */}
+                    <div className="text-[10px] font-black text-[#7A7B8D] uppercase tracking-widest mb-3">{language === "Turkish" ? "Bildirim Ayarları" : "Notification Settings"}</div>
                     <div className="space-y-3">
                       {[
-                        { label: language === "Turkish" ? "Fiyat Uyarıları" : "Price Alerts", desc: language === "Turkish" ? "Fiyat hedefine ulaşıldığında bildirim al" : "Get notified when price targets are hit", defaultOn: true },
-                        { label: language === "Turkish" ? "Yorum Yanıtları" : "Comment Replies", desc: language === "Turkish" ? "Yorumlarına yanıt geldiğinde" : "When someone replies to your comments", defaultOn: true },
-                        { label: language === "Turkish" ? "Piyasa Haberleri" : "Market News", desc: language === "Turkish" ? "Önemli piyasa haberleri" : "Important market news alerts", defaultOn: false },
-                        { label: language === "Turkish" ? "Topluluk Trendleri" : "Community Trends", desc: language === "Turkish" ? "Trend olan tartışmalar" : "Trending discussions", defaultOn: false },
-                        { label: language === "Turkish" ? "Haftalık Özet" : "Weekly Digest", desc: language === "Turkish" ? "Haftalık piyasa özeti" : "Weekly market summary", defaultOn: true },
+                        { label: language === "Turkish" ? "Fiyat Uyarıları" : "Price Alerts", desc: language === "Turkish" ? "Fiyat hedefine ulaşıldığında" : "When price targets are hit", defaultOn: true },
+                        { label: language === "Turkish" ? "Yorum Yanıtları" : "Comment Replies", desc: language === "Turkish" ? "Yorumlarına yanıt geldiğinde" : "When someone replies", defaultOn: true },
+                        { label: language === "Turkish" ? "Beğeniler" : "Likes", desc: language === "Turkish" ? "Yorumların beğenildiğinde" : "When your comments are liked", defaultOn: true },
+                        { label: language === "Turkish" ? "Piyasa Haberleri" : "Market News", desc: language === "Turkish" ? "Önemli piyasa haberleri" : "Important market news", defaultOn: false },
                       ].map((item, i) => (
                         <NotifToggle key={i} label={item.label} desc={item.desc} defaultOn={item.defaultOn} />
                       ))}
@@ -1699,14 +1732,38 @@ export default function App() {
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#00FFFF]/20 to-[#39FF14]/20 flex items-center justify-center border border-white/10">
                   <Edit3 className="w-5 h-5 text-[#00FFFF]" />
                 </div>
-                <div>
+                <div className="flex-1">
                   <div className="text-[13px] font-black text-white uppercase tracking-wider">
                     {language === "Turkish" ? "Yorum Yaz" : "Write Comment"}
                   </div>
                   <div className="text-[11px] text-[#7A7B8D]">
-                    {activeAsset.name} • ${commentChartIdx !== null ? activeData[commentChartIdx]?.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : ""}
+                    {activeAsset.name}
                   </div>
                 </div>
+              </div>
+
+              {/* Price display with manual edit */}
+              <div className="mb-4 bg-white/5 border border-white/[0.05] rounded-xl p-3 flex items-center justify-between">
+                <div className="text-[10px] font-bold text-[#7A7B8D] uppercase tracking-wider">{language === "Turkish" ? "Fiyat Noktası" : "Price Point"}</div>
+                <input 
+                  type="text"
+                  value={commentChartIdx !== null ? `$${activeData[commentChartIdx]?.toFixed(2)}` : ""}
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value.replace(/[^0-9.]/g, ''));
+                    if (!isNaN(val)) {
+                      // Find nearest data point to entered price
+                      let nearestIdx = 0;
+                      let nearestDist = Infinity;
+                      activeData.forEach((d, i) => {
+                        const dist = Math.abs(d - val);
+                        if (dist < nearestDist) { nearestDist = dist; nearestIdx = i; }
+                      });
+                      setCommentChartIdx(nearestIdx);
+                    }
+                  }}
+                  className="bg-transparent text-right text-[16px] font-bold text-white w-[140px] focus:outline-none"
+                  onPointerDownCapture={e => e.stopPropagation()}
+                />
               </div>
 
               <div className="mb-4">
