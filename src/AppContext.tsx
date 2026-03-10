@@ -4,8 +4,49 @@ import { useSupabase } from "../useSupabaseData";
 import { supabase } from "../supabase";
 import { fetchMarketData, fetchRealTimePrice, fetchQuote } from "../services/marketData";
 import { GoogleGenAI } from "@google/genai";
-import { ASSETS, MOCK_TRANSLATIONS } from "../data";
+import { ASSETS, MOCK_TRANSLATIONS as _MOCK_TRANSLATIONS } from "../data";
 import { TRANSLATIONS } from "../translations";
+
+// ── NEWS & CONSENSUS MARKERS — importance 1-10, zoom-aware (max 2 shown in viewport) ──
+const DEMO_MARKERS = {
+  BTC: [
+    { idx: 8,  type: "news",      importance: 9,  sentiment: "Positive", translation: "BlackRock Bitcoin ETF onaylandı — kurumsal sermaye kapıları açıldı.", comments: [{ user: "@InstitutionalFlow", text: "ETF girişleri $2B geçti, bu oyunu tamamen değiştiriyor.", sentiment: "Positive", likes: 94 }, { user: "@CryptoKing", text: "Beklentileri aştı, long pozisyon için ideal an.", sentiment: "Positive", likes: 47 }, { user: "@Skeptic99", text: "Hype fazla, realize etme dalgası gelebilir.", sentiment: "Negative", likes: 12 }] },
+    { idx: 18, type: "consensus", importance: 6,  sentiment: "Positive", translation: "AI Konsensus: %73 analist yükseliş bekliyor. RSI 68 — aşırı alım bölgesine yaklaşılıyor.", comments: [{ user: "@DayTrader", text: "RSI biraz daha yer var, aldım.", sentiment: "Positive", likes: 31 }, { user: "@MacroEcon", text: "Konsensus güçlü ama makro veriler karışık.", sentiment: "Neutral", likes: 19 }] },
+    { idx: 32, type: "news",      importance: 10, sentiment: "Negative", translation: "FTX çöküşü piyasayı sarstı — $8B açık pozisyon tasfiye edildi.", comments: [{ user: "@RegulatoryWatch", text: "Tarihsel en büyük kripto iflası. Etkileri uzun sürer.", sentiment: "Negative", likes: 112 }, { user: "@BearHunter", text: "Stop loss'larımı yukarı çektim, iyi ki.", sentiment: "Negative", likes: 34 }] },
+    { idx: 45, type: "consensus", importance: 5,  sentiment: "Neutral",  translation: "AI Konsensus: Piyasa yön arıyor. %51 yükseliş, %49 düşüş beklentisi.", comments: [{ user: "@SwingTrader", text: "Bu belirsizlikte range trading yapıyorum.", sentiment: "Neutral", likes: 15 }] },
+    { idx: 55, type: "news",      importance: 8,  sentiment: "Positive", translation: "MicroStrategy 21,000 BTC daha satın aldı — hazine stratejisi güçleniyor.", comments: [{ user: "@Saylor_Fan", text: "Şirket bilanço stratejisi olarak BTC aldı, bu trend büyüyor.", sentiment: "Positive", likes: 67 }, { user: "@ValueInvestor", text: "Riskli ama kararlı bir hamle.", sentiment: "Neutral", likes: 23 }] },
+  ],
+  ETH: [
+    { idx: 10, type: "news",      importance: 9,  sentiment: "Positive", translation: "Ethereum The Merge tamamlandı — Proof-of-Stake geçişi başarılı.", comments: [{ user: "@L2Maxi", text: "Enerji tüketimi %99.95 düştü. Bu devrimsel.", sentiment: "Positive", likes: 88 }, { user: "@MinerFee", text: "Madenciler için kötü, ama ağ için iyi.", sentiment: "Neutral", likes: 21 }] },
+    { idx: 30, type: "consensus", importance: 6,  sentiment: "Neutral",  translation: "AI Konsensus: ETH staking oranı %28'e ulaştı. Likidite azalıyor.", comments: [{ user: "@ValidatorNode", text: "Staking getirisi düşüyor ama güvenlik artıyor.", sentiment: "Neutral", likes: 21 }] },
+    { idx: 50, type: "news",      importance: 8,  sentiment: "Negative", translation: "SEC Ethereum'u menkul kıymet sayabilir — davalar genişliyor.", comments: [{ user: "@BTC_Maxi", text: "Regülasyon riski gerçek. Sermaye BTC'ye geçiyor.", sentiment: "Negative", likes: 45 }, { user: "@ETH_Bull", text: "Hukuki belirsizlik geçici, teknoloji kazanır.", sentiment: "Positive", likes: 38 }] },
+  ],
+  AAPL: [
+    { idx: 12, type: "news",      importance: 9,  sentiment: "Positive", translation: "Apple Vision Pro lansmanı — $3,499 fiyatla spatial computing çağı başladı.", comments: [{ user: "@TechBull", text: "Spatial computing platform yükselişi bu. 5 yıl içinde mainstream.", sentiment: "Positive", likes: 72 }, { user: "@PriceSkeptic", text: "$3,499 fiyat kitlelere ulaşmayı engelliyor.", sentiment: "Negative", likes: 29 }] },
+    { idx: 35, type: "consensus", importance: 7,  sentiment: "Neutral",  translation: "AI Konsensus: AAPL P/E 31x — büyüme beklentileri fiyatlanmış durumda.", comments: [{ user: "@ValueInvestor", text: "Değerleme gergin ama Apple kalite primini hak ediyor.", sentiment: "Neutral", likes: 16 }] },
+    { idx: 52, type: "news",      importance: 8,  sentiment: "Negative", translation: "iPhone satışları Çin'de %19 geriledi — rekabet baskısı artıyor.", comments: [{ user: "@ChinaAnalyst", text: "Huawei'nin geri dönüşü Apple için ciddi tehdit.", sentiment: "Negative", likes: 43 }] },
+  ],
+  TSLA: [
+    { idx: 15, type: "news",      importance: 10, sentiment: "Positive", translation: "Tesla S&P 500'e eklendi — pasif fon alımları $12B'a ulaştı.", comments: [{ user: "@IndexFund", text: "Tarihin en büyük endeks eklemesi. Fiyat hareketi anlaşılır.", sentiment: "Positive", likes: 89 }] },
+    { idx: 40, type: "news",      importance: 9,  sentiment: "Negative", translation: "Elon Musk Tesla hisselerini sattı — Twitter satın alımı finanse ediliyor.", comments: [{ user: "@TeslaShort", text: "CEO hisse satışı güven zedeliyor.", sentiment: "Negative", likes: 67 }, { user: "@TeslaBull", text: "Kısa vadeli baskı, uzun vade değişmedi.", sentiment: "Positive", likes: 34 }] },
+    { idx: 55, type: "consensus", importance: 6,  sentiment: "Neutral",  translation: "AI Konsensus: TSLA EV rekabeti artıyor, margin baskısı devam ediyor.", comments: [{ user: "@EVAnalyst", text: "BYD, GM, Ford basıyı artırıyor.", sentiment: "Negative", likes: 22 }] },
+  ],
+  NVDA: [
+    { idx: 20, type: "news",      importance: 10, sentiment: "Positive", translation: "NVIDIA H100 GPU talebi yapay zeka patlamasıyla rekor kırdı — bekleme listesi 1 yıla uzadı.", comments: [{ user: "@AIInvestor", text: "ChatGPT etkisi doğrudan NVDA bilançosuna yansıdı.", sentiment: "Positive", likes: 134 }] },
+    { idx: 50, type: "consensus", importance: 7,  sentiment: "Positive", translation: "AI Konsensus: NVDA datacenter gelirleri $10B/çeyrek rejimine giriyor.", comments: [{ user: "@TechAnalyst", text: "Gelir görünürlüğü çok yüksek, kurumsal talep devam ediyor.", sentiment: "Positive", likes: 56 }] },
+  ],
+  GOLD: [
+    { idx: 15, type: "news",      importance: 9,  sentiment: "Positive", translation: "Fed faiz artışları duraklatıldı — altın güvenli liman talebinde sert yükseliş.", comments: [{ user: "@GoldBug", text: "Reel faiz düşünce altın parlıyor, klasik senaryo.", sentiment: "Positive", likes: 44 }] },
+    { idx: 45, type: "news",      importance: 8,  sentiment: "Positive", translation: "Merkez bankaları 1,000 ton altın aldı — 55 yılın rekoru.", comments: [{ user: "@CBAnalyst", text: "Dolar dışı rezerv çeşitlendirmesi hız kazandı.", sentiment: "Positive", likes: 61 }] },
+  ],
+  SOL: [
+    { idx: 18, type: "news",      importance: 10, sentiment: "Negative", translation: "Solana ağı 17 saatlik kesinti yaşadı — güvenilirlik sorgulanıyor.", comments: [{ user: "@ValidatorSOL", text: "Downtime sorunu hâlâ çözülmedi, endişe verici.", sentiment: "Negative", likes: 78 }] },
+    { idx: 48, type: "news",      importance: 9,  sentiment: "Positive", translation: "Solana mobil cüzdan Saga kullanıcı rekoru kırdı — tüketici odaklı büyüme.", comments: [{ user: "@SolBull", text: "Saga kampanyası Solana ekosistemini mainstream'e taşıdı.", sentiment: "Positive", likes: 52 }] },
+  ],
+};
+
+const MOCK_TRANSLATIONS = { ..._MOCK_TRANSLATIONS, ...DEMO_MARKERS };
+// ── END DEMO DATA ──
 
 let aiClient = null;
 export const getAIClient = () => {
@@ -261,21 +302,34 @@ export function AppProvider({ children }) {
       activeTranslations.forEach(point => {
         if (point.type === "news" && !showNewsBubbles) return;
         if (point.type !== "news" && !showAIConsensus) return;
-        const target = chartDataPoints[point.idx] || chartDataPoints[0];
-        if (target) markers.push({ time: target.time, sentiment: point.type === "news" ? "Neutral" : point.sentiment, type: point.type, idx: point.idx });
+        // Clamp idx to valid range
+        const idx = Math.min(Math.max(point.idx || 0, 0), chartDataPoints.length - 1);
+        const target = chartDataPoints[idx];
+        if (target) markers.push({
+          time: target.time,
+          sentiment: point.sentiment,
+          type: point.type,
+          idx,
+          importance: point.importance || 5,
+          headline: point.translation,  // short version for bubble
+          translation: point.translation,
+          comments: point.comments || [],
+        });
       });
     }
     activeUserComments.forEach(uc => {
       const t = uc.realTime ?? chartDataPoints[uc.chartIndex]?.time ?? chartDataPoints[chartDataPoints.length - 1]?.time;
-      if (t) markers.push({ time: t, sentiment: uc.sentiment, type: "user_comment", id: uc.id });
+      if (t) markers.push({ time: t, sentiment: uc.sentiment, type: "user_comment", id: uc.id, importance: 3 });
     });
     return markers;
   }, [activeTranslations, activeUserComments, showAIConsensus, showNewsBubbles, chartDataPoints]);
 
   // ── Handlers ──
-  const openCommentSheet = () => {
-    if (!chartCrosshair) return;
-    setCommentChartIdx(chartCrosshair.idx);
+  const openCommentSheet = (forceIdx) => {
+    // Allow opening from chart crosshair OR floating button (forceIdx)
+    const idx = forceIdx ?? (chartCrosshair?.idx ?? null);
+    const safeIdx = idx !== null ? idx : (activeData.length > 0 ? activeData.length - 1 : 0);
+    setCommentChartIdx(safeIdx);
     setCommentText("");
     setCommentSentiment("Neutral");
     setShowCommentSheet(true);
@@ -283,9 +337,12 @@ export function AppProvider({ children }) {
 
   const submitComment = () => {
     if (!commentText.trim() || commentChartIdx === null) return;
+    // Handle both {time, value} objects (realMarketData) and plain numbers (mock data)
+    const rawData = activeData[commentChartIdx];
+    const price = typeof rawData === 'object' ? (rawData?.value ?? 0) : (rawData ?? 0);
     setUserComments(prev => [{
       id: Date.now().toString(), assetId: selectedAssetId, timeframe,
-      chartIndex: commentChartIdx, price: activeData[commentChartIdx],
+      chartIndex: commentChartIdx, price,
       text: commentText.trim(), sentiment: commentSentiment,
       timestamp: new Date().toISOString(), user: "@You", likes: 0,
     }, ...prev]);
@@ -326,6 +383,22 @@ export function AppProvider({ children }) {
     finally { setIsAnalyzing(false); }
   };
 
+  // Called from ChartComponent when user taps a marker dot
+  // marker has { time, sentiment, type, headline, translation, comments, screenX, screenY }
+  const handleMarkerClick = (marker) => {
+    if (!marker) return;
+    // If it's a news/consensus marker, open the detail sheet
+    if (marker.type === 'news' || marker.type === 'consensus') {
+      const fullMarker = activeTranslations.find(t => {
+        const target = chartDataPoints[t.idx];
+        return target && Math.abs(Number(target.time) - marker.time) < 1;
+      }) || marker;
+      setDetailedPoint({ ...fullMarker, screenX: marker.screenX, screenY: marker.screenY });
+      setSentimentFilter("All");
+    }
+    // user_comment markers could open My Comments sheet
+  };
+
   const navigateTo = (assetId) => {
     setSelectedAssetId(assetId);
     setActiveTab("dashboard");
@@ -362,6 +435,7 @@ export function AppProvider({ children }) {
     commentSentiment, setCommentSentiment, showMyComments, setShowMyComments,
     commentVotes, postVotes, setPostVotes, hideMyCommentsBar, setHideMyCommentsBar,
     longPressTimer, openCommentSheet, submitComment, deleteComment, voteComment,
+    handleMarkerClick,
     // watchlist
     watchlistAssets, setWatchlistAssets, pinnedAssets, setPinnedAssets,
     isEditPinned, setIsEditPinned, watchlistLayout, setWatchlistLayout,
