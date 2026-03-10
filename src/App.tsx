@@ -154,8 +154,8 @@ export default function App() {
   const [isEditPinned, setIsEditPinned] = useState(false);
   const [menuSearch, setMenuSearch] = useState("");
   const [watchlistLayout, setWatchlistLayout] = useState<"list" | "grid">("list");
-  const [showNewsBubbles, setShowNewsBubbles] = useState(true);
-  const [showAIConsensus, setShowAIConsensus] = useState(true);
+  const [showNewsBubbles, setShowNewsBubbles] = useState(false);
+  const [showAIConsensus, setShowAIConsensus] = useState(false);
 
   const [realMarketData, setRealMarketData] = useState<any[] | null>(null);
   const [realTimePrice, setRealTimePrice] = useState<number | null>(null);
@@ -358,6 +358,22 @@ export default function App() {
     const data = activeAsset?.data?.[timeframe as keyof typeof activeAsset.data] || activeAsset?.data?.["1D"] || [];
     return Array.isArray(data) ? data : [];
   }, [activeAsset, timeframe, realMarketData]);
+
+  // displayPrice: always in sync with what the chart actually shows
+  const displayPrice = useMemo(() => {
+    if (realTimePrice) return realTimePrice;
+    if (realMarketData && realMarketData.length > 0) {
+      const last = realMarketData[realMarketData.length - 1];
+      return last?.value ?? activeAsset.price;
+    }
+    // Use mock data last value if chart is showing mock
+    const lastMock = activeData[activeData.length - 1];
+    if (lastMock !== undefined) {
+      const v = typeof lastMock === 'object' ? lastMock.value : lastMock;
+      if (v && v > 0) return v;
+    }
+    return activeAsset.price;
+  }, [realTimePrice, realMarketData, activeData, activeAsset]);
   
   const activeTranslations = MOCK_TRANSLATIONS[selectedAssetId as keyof typeof MOCK_TRANSLATIONS] || [];
 
@@ -1012,13 +1028,11 @@ export default function App() {
                       <div className="text-[#7A7B8D] text-[11px] font-semibold tracking-[0.15em] mb-1.5">{activeAsset.symbol}</div>
                       <div className="flex items-center gap-2 mb-4">
                         <div className={`text-white text-[38px] font-bold tracking-tight leading-none transition-all ${isDataLoading ? 'opacity-50 blur-[2px]' : 'opacity-100'}`}>
-                          ${(realTimePrice || activeAsset.price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          ${displayPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </div>
-                        {realMarketData && (
-                          <div className="bg-[#39FF14]/10 border border-[#39FF14]/20 rounded-md px-1.5 py-0.5 self-center">
-                            <span className="text-[8px] font-black text-[#39FF14] animate-pulse">LIVE</span>
-                          </div>
-                        )}
+                        <div className={`rounded px-1.5 py-0.5 self-center border ${realMarketData ? 'bg-[#39FF14]/15 border-[#39FF14]/30' : 'bg-white/5 border-white/10'}`}>
+                          <span className={`text-[9px] font-black tracking-widest ${realMarketData ? 'text-[#39FF14] animate-pulse' : 'text-white/30'}`}>LIVE</span>
+                        </div>
                       </div>
                       <div className="flex items-center gap-3">
                         <div className={`px-2 py-1 rounded-lg flex items-center gap-1 font-bold text-[11px] transition-all ${
@@ -1043,6 +1057,7 @@ export default function App() {
                   {/* Chart Area */}
                   <div className="mt-8 relative h-[240px] w-full rounded-2xl overflow-hidden border border-white/5 shadow-[0_0_30px_rgba(0,0,0,0.5)]">
                     <MarketPulseChart 
+                      key={`${selectedAssetId}-${timeframe}`}
                       data={chartDataPoints as any}
                       comments={chartMarkers}
                       lineColor={(realQuote ? realQuote.isUp : activeAsset.change.startsWith('+')) ? '#39FF14' : '#E50000'}
