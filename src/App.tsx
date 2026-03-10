@@ -359,19 +359,30 @@ export default function App() {
     return Array.isArray(data) ? data : [];
   }, [activeAsset, timeframe, realMarketData]);
 
-  // displayPrice: always in sync with what the chart actually shows
+  // displayPrice: ALWAYS matches what the chart shows
+  // realTimePrice is only used if it's within a reasonable range of the asset's known price
   const displayPrice = useMemo(() => {
-    if (realTimePrice) return realTimePrice;
-    if (realMarketData && realMarketData.length > 0) {
-      const last = realMarketData[realMarketData.length - 1];
-      return last?.value ?? activeAsset.price;
+    // Get the last value from whatever data is driving the chart
+    const getLastValue = () => {
+      if (realMarketData && realMarketData.length > 0) {
+        const last = realMarketData[realMarketData.length - 1];
+        return last?.value ?? null;
+      }
+      const last = activeData[activeData.length - 1];
+      if (last === undefined) return null;
+      return typeof last === 'object' ? last?.value : last;
+    };
+
+    const chartLast = getLastValue();
+
+    // Validate realTimePrice: if it's wildly off from chart data, ignore it (API symbol mismatch)
+    if (realTimePrice && chartLast) {
+      const ratio = realTimePrice / chartLast;
+      if (ratio > 0.5 && ratio < 2) return realTimePrice; // within 50-200% = plausible
     }
-    // Use mock data last value if chart is showing mock
-    const lastMock = activeData[activeData.length - 1];
-    if (lastMock !== undefined) {
-      const v = typeof lastMock === 'object' ? lastMock.value : lastMock;
-      if (v && v > 0) return v;
-    }
+
+    // Otherwise always show what the chart is showing
+    if (chartLast && chartLast > 0) return chartLast;
     return activeAsset.price;
   }, [realTimePrice, realMarketData, activeData, activeAsset]);
   
