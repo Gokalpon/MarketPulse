@@ -114,7 +114,7 @@ export const MarketPulseChart: React.FC<ChartProps> = ({
       window.removeEventListener('resize', handleResize);
       chart.remove();
     };
-  }, [backgroundColor, textColor, lineColor, areaTopColor, areaBottomColor]);
+  }, [data, comments, backgroundColor, textColor, lineColor, areaTopColor, areaBottomColor]);
 
   return (
     <div
