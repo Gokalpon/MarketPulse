@@ -109,7 +109,7 @@ export default function App() {
   const [timeframe, setTimeframe] = useState("1D");
   const [sentimentFilter, setSentimentFilter] = useState("All");
   const [autoTranslate, setAutoTranslate] = useState(true);
-  const [language, setLanguage] = useState("English");
+  const [language, setLanguage] = useState(() => localStorage.getItem('mp_language') || "English");
   const [showLanguageMenu, setShowLanguageMenu] = useState(false);
 
   const t = TRANSLATIONS[language as keyof typeof TRANSLATIONS] || TRANSLATIONS.English;
@@ -176,6 +176,7 @@ export default function App() {
   const [chartCrosshair, setChartCrosshair] = useState<{idx: number, price: number, x: number, y: number} | null>(null);
   const [showMyComments, setShowMyComments] = useState(false);
   const [commentVotes, setCommentVotes] = useState<Record<string, 'up' | 'down' | null>>({});
+  const [postVotes, setPostVotes] = useState<Record<string, 'up' | 'down' | null>>({});
   const [hideMyCommentsBar, setHideMyCommentsBar] = useState(false);
   const longPressTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -338,10 +339,20 @@ export default function App() {
 
   const activeAsset = useMemo(() => ASSETS.find(a => a.id === selectedAssetId) || ASSETS[0], [selectedAssetId]);
   
+<<<<<<< HEAD
   // Reset AI analysis when asset changes
   useEffect(() => {
     setAiAnalysis(null);
     setChartCrosshair(null);
+=======
+  // Reset all data when asset changes (prevents stale price/chart from old asset showing)
+  useEffect(() => {
+    setAiAnalysis(null);
+    setChartCrosshair(null);
+    setRealMarketData(null);
+    setRealTimePrice(null);
+    setRealQuote(null);
+>>>>>>> 0791727fa9216e63e72629ee8a8683002f392fe2
   }, [selectedAssetId]);
 
   // Clear crosshair on timeframe change
@@ -354,6 +365,25 @@ export default function App() {
     const data = activeAsset?.data?.[timeframe as keyof typeof activeAsset.data] || activeAsset?.data?.["1D"] || [];
     return Array.isArray(data) ? data : [];
   }, [activeAsset, timeframe, realMarketData]);
+<<<<<<< HEAD
+=======
+
+  // displayPrice: always in sync with what the chart actually shows
+  const displayPrice = useMemo(() => {
+    if (realTimePrice) return realTimePrice;
+    if (realMarketData && realMarketData.length > 0) {
+      const last = realMarketData[realMarketData.length - 1];
+      return last?.value ?? activeAsset.price;
+    }
+    // Use mock data last value if chart is showing mock
+    const lastMock = activeData[activeData.length - 1];
+    if (lastMock !== undefined) {
+      const v = typeof lastMock === 'object' ? lastMock.value : lastMock;
+      if (v && v > 0) return v;
+    }
+    return activeAsset.price;
+  }, [realTimePrice, realMarketData, activeData, activeAsset]);
+>>>>>>> 0791727fa9216e63e72629ee8a8683002f392fe2
   
   const activeTranslations = MOCK_TRANSLATIONS[selectedAssetId as keyof typeof MOCK_TRANSLATIONS] || [];
 
@@ -704,6 +734,10 @@ export default function App() {
                         onClick={(e) => {
                           e.stopPropagation();
                           setLanguage(lang);
+<<<<<<< HEAD
+=======
+                          localStorage.setItem('mp_language', lang);
+>>>>>>> 0791727fa9216e63e72629ee8a8683002f392fe2
                           setShowLanguageMenu(false);
                         }}
                         className={`px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 text-center ${
@@ -1007,6 +1041,7 @@ export default function App() {
                       <div className="text-[#7A7B8D] text-[11px] font-semibold tracking-[0.15em] mb-1.5">{activeAsset.symbol}</div>
                       <div className="flex items-center gap-2 mb-4">
                         <div className={`text-white text-[38px] font-bold tracking-tight leading-none transition-all ${isDataLoading ? 'opacity-50 blur-[2px]' : 'opacity-100'}`}>
+<<<<<<< HEAD
                           ${((realTimePrice && !isNaN(realTimePrice)) ? realTimePrice : activeAsset.price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </div>
                         {realMarketData && (
@@ -1014,6 +1049,13 @@ export default function App() {
                             <span className="text-[8px] font-black text-[#39FF14] animate-pulse">LIVE</span>
                           </div>
                         )}
+=======
+                          ${displayPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </div>
+                        <div className={`rounded px-1.5 py-0.5 self-center border ${realMarketData ? 'bg-[#39FF14]/15 border-[#39FF14]/30' : 'bg-white/5 border-white/10'}`}>
+                          <span className={`text-[9px] font-black tracking-widest ${realMarketData ? 'text-[#39FF14] animate-pulse' : 'text-white/30'}`}>LIVE</span>
+                        </div>
+>>>>>>> 0791727fa9216e63e72629ee8a8683002f392fe2
                       </div>
                       <div className="flex items-center gap-3">
                         <div className={`px-2 py-1 rounded-lg flex items-center gap-1 font-bold text-[11px] transition-all ${
@@ -1038,6 +1080,10 @@ export default function App() {
                   {/* Chart Area */}
                   <div className="mt-8 relative h-[240px] w-full rounded-2xl overflow-hidden border border-white/5 shadow-[0_0_30px_rgba(0,0,0,0.5)]">
                     <MarketPulseChart 
+<<<<<<< HEAD
+=======
+                      key={`${selectedAssetId}-${timeframe}`}
+>>>>>>> 0791727fa9216e63e72629ee8a8683002f392fe2
                       data={chartDataPoints as any}
                       comments={chartMarkers}
                       lineColor={(realQuote ? realQuote.isUp : activeAsset.change.startsWith('+')) ? '#39FF14' : '#E50000'}
@@ -1386,10 +1432,27 @@ export default function App() {
                         </div>
                       </div>
                       <p className="text-[14px] text-white/90 leading-relaxed mb-4">{post.text}</p>
+<<<<<<< HEAD
                       <div className="flex items-center gap-6 text-[#7A7B8D]">
                         <button className="flex items-center gap-1.5 hover:text-[#39FF14] transition-colors">
                           <Heart className="w-4 h-4" />
                           <span className="text-[12px] font-bold">{post.likes}</span>
+=======
+                      <div className="flex items-center gap-4 text-[#7A7B8D]">
+                        <button 
+                          onClick={() => setPostVotes(v => ({ ...v, [post.id]: v[post.id] === 'up' ? null : 'up' }))}
+                          className={`flex items-center gap-1.5 transition-all ${postVotes[post.id] === 'up' ? 'text-[#39FF14] scale-110' : 'hover:text-[#39FF14]'}`}
+                        >
+                          <TrendingUp className="w-4 h-4" strokeWidth={2.5} />
+                          <span className="text-[12px] font-bold">{post.likes + (postVotes[post.id] === 'up' ? 1 : 0)}</span>
+                        </button>
+                        <button
+                          onClick={() => setPostVotes(v => ({ ...v, [post.id]: v[post.id] === 'down' ? null : 'down' }))}
+                          className={`flex items-center gap-1.5 transition-all ${postVotes[post.id] === 'down' ? 'text-[#E50000] scale-110' : 'hover:text-[#E50000]'}`}
+                        >
+                          <TrendingDown className="w-4 h-4" strokeWidth={2.5} />
+                          <span className="text-[12px] font-bold">{Math.floor(post.likes * 0.12) + (postVotes[post.id] === 'down' ? 1 : 0)}</span>
+>>>>>>> 0791727fa9216e63e72629ee8a8683002f392fe2
                         </button>
                         <button className="flex items-center gap-1.5 hover:text-[#00FFFF] transition-colors">
                           <MessageCircle className="w-4 h-4" />
@@ -1616,7 +1679,7 @@ export default function App() {
                                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={(e) => { e.stopPropagation(); setShowLanguageMenu(false); }} className="fixed inset-0 z-[61]" />
                                   <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="absolute top-full mt-2 left-0 right-0 bg-[#0D0E14]/98 border border-white/[0.1] rounded-xl p-2.5 backdrop-blur-3xl shadow-[0_10px_50px_rgba(0,0,0,0.8)] z-[62] grid grid-cols-2 gap-1.5">
                                     {["English", "Turkish", "German", "French", "Spanish", "Italian", "Russian", "Chinese"].map((lang) => (
-                                      <button key={lang} onClick={(e) => { e.stopPropagation(); setLanguage(lang); setShowLanguageMenu(false); }} className={`px-3 py-2.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-center ${language === lang ? "bg-white text-black" : "text-white/40 hover:bg-white/5"}`}>{lang}</button>
+                                      <button key={lang} onClick={(e) => { e.stopPropagation(); setLanguage(lang); localStorage.setItem('mp_language', lang); setShowLanguageMenu(false); }} className={`px-3 py-2.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-center ${language === lang ? "bg-white text-black" : "text-white/40 hover:bg-white/5"}`}>{lang}</button>
                                     ))}
                                   </motion.div>
                                 </>
