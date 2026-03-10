@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useEffect, useRef } from 'react';
-import { createChart, ColorType } from 'lightweight-charts';
+import { createChart, ColorType, AreaSeries } from 'lightweight-charts';
 
 interface ChartProps {
   data: { time: string | number; value: number }[];
@@ -42,7 +42,7 @@ export const MarketPulseChart: React.FC<ChartProps> = ({
         horzLines: { color: 'rgba(255,255,255,0.03)' },
       },
       width: container.clientWidth,
-      height: container.clientHeight || 240,
+      height: container.clientHeight || 220,
       timeScale: {
         timeVisible: true,
         secondsVisible: false,
@@ -62,7 +62,8 @@ export const MarketPulseChart: React.FC<ChartProps> = ({
 
     chartRef.current = chart;
 
-    const series = chart.addAreaSeries({
+    // v5 API: addSeries(AreaSeries, options)
+    const series = chart.addSeries(AreaSeries, {
       lineColor,
       topColor: areaTopColor,
       bottomColor: areaBottomColor,
@@ -82,7 +83,7 @@ export const MarketPulseChart: React.FC<ChartProps> = ({
       if (chartRef.current && container) {
         chartRef.current.applyOptions({
           width: container.clientWidth,
-          height: container.clientHeight || 240,
+          height: container.clientHeight || 220,
         });
         chartRef.current.timeScale().fitContent();
       }
@@ -97,7 +98,7 @@ export const MarketPulseChart: React.FC<ChartProps> = ({
     };
   }, [backgroundColor, textColor, lineColor, areaTopColor, areaBottomColor]);
 
-  // Update data when it changes — no full chart re-create
+  // Update data when it changes
   useEffect(() => {
     const series = seriesRef.current;
     if (!series) return;
@@ -117,14 +118,14 @@ export const MarketPulseChart: React.FC<ChartProps> = ({
 
     try {
       series.setData(cleaned);
-      // fitContent AFTER data — fixes left-side empty space
       if (chartRef.current) chartRef.current.timeScale().fitContent();
     } catch(e) {
       console.warn('setData error:', e);
     }
   }, [data]);
 
-  // Update markers separately
+  // Update markers separately — v5 uses createSeriesMarkers imported separately
+  // but setMarkers still works on the series in v5 via the series itself
   useEffect(() => {
     const series = seriesRef.current;
     if (!series) return;
@@ -142,14 +143,16 @@ export const MarketPulseChart: React.FC<ChartProps> = ({
              : c.sentiment === 'Negative'  ? '#FF3131'
              : '#FFFFFF',
         shape: 'circle',
-        text: '',  // no text labels on chart
+        text: '',
         size: 1,
       }))
       .filter(m => !isNaN(m.time) && m.time > 0)
       .sort((a, b) => a.time - b.time)
       .filter((m, i, arr) => i === 0 || m.time !== arr[i - 1].time);
 
-    try { series.setMarkers(markers); } catch(e) {}
+    try { series.setMarkers(markers); } catch(e) {
+      console.warn('setMarkers not available, skipping markers');
+    }
   }, [comments]);
 
   return (
