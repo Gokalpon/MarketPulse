@@ -109,7 +109,7 @@ export default function App() {
   const [timeframe, setTimeframe] = useState("1D");
   const [sentimentFilter, setSentimentFilter] = useState("All");
   const [autoTranslate, setAutoTranslate] = useState(true);
-  const [language, setLanguage] = useState("English");
+  const [language, setLanguage] = useState(() => localStorage.getItem('mp_language') || "English");
   const [showLanguageMenu, setShowLanguageMenu] = useState(false);
 
   const t = TRANSLATIONS[language as keyof typeof TRANSLATIONS] || TRANSLATIONS.English;
@@ -176,6 +176,7 @@ export default function App() {
   const [chartCrosshair, setChartCrosshair] = useState<{idx: number, price: number, x: number, y: number} | null>(null);
   const [showMyComments, setShowMyComments] = useState(false);
   const [commentVotes, setCommentVotes] = useState<Record<string, 'up' | 'down' | null>>({});
+  const [postVotes, setPostVotes] = useState<Record<string, 'up' | 'down' | null>>({});
   const [hideMyCommentsBar, setHideMyCommentsBar] = useState(false);
   const longPressTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -338,10 +339,13 @@ export default function App() {
 
   const activeAsset = useMemo(() => ASSETS.find(a => a.id === selectedAssetId) || ASSETS[0], [selectedAssetId]);
   
-  // Reset AI analysis when asset changes
+  // Reset all data when asset changes (prevents stale price/chart from old asset showing)
   useEffect(() => {
     setAiAnalysis(null);
     setChartCrosshair(null);
+    setRealMarketData(null);
+    setRealTimePrice(null);
+    setRealQuote(null);
   }, [selectedAssetId]);
 
   // Clear crosshair on timeframe change
@@ -704,6 +708,7 @@ export default function App() {
                         onClick={(e) => {
                           e.stopPropagation();
                           setLanguage(lang);
+                          localStorage.setItem('mp_language', lang);
                           setShowLanguageMenu(false);
                         }}
                         className={`px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 text-center ${
@@ -1386,10 +1391,20 @@ export default function App() {
                         </div>
                       </div>
                       <p className="text-[14px] text-white/90 leading-relaxed mb-4">{post.text}</p>
-                      <div className="flex items-center gap-6 text-[#7A7B8D]">
-                        <button className="flex items-center gap-1.5 hover:text-[#39FF14] transition-colors">
-                          <Heart className="w-4 h-4" />
-                          <span className="text-[12px] font-bold">{post.likes}</span>
+                      <div className="flex items-center gap-4 text-[#7A7B8D]">
+                        <button 
+                          onClick={() => setPostVotes(v => ({ ...v, [post.id]: v[post.id] === 'up' ? null : 'up' }))}
+                          className={`flex items-center gap-1.5 transition-all ${postVotes[post.id] === 'up' ? 'text-[#39FF14] scale-110' : 'hover:text-[#39FF14]'}`}
+                        >
+                          <TrendingUp className="w-4 h-4" strokeWidth={2.5} />
+                          <span className="text-[12px] font-bold">{post.likes + (postVotes[post.id] === 'up' ? 1 : 0)}</span>
+                        </button>
+                        <button
+                          onClick={() => setPostVotes(v => ({ ...v, [post.id]: v[post.id] === 'down' ? null : 'down' }))}
+                          className={`flex items-center gap-1.5 transition-all ${postVotes[post.id] === 'down' ? 'text-[#E50000] scale-110' : 'hover:text-[#E50000]'}`}
+                        >
+                          <TrendingDown className="w-4 h-4" strokeWidth={2.5} />
+                          <span className="text-[12px] font-bold">{Math.floor(post.likes * 0.12) + (postVotes[post.id] === 'down' ? 1 : 0)}</span>
                         </button>
                         <button className="flex items-center gap-1.5 hover:text-[#00FFFF] transition-colors">
                           <MessageCircle className="w-4 h-4" />
@@ -1616,7 +1631,7 @@ export default function App() {
                                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={(e) => { e.stopPropagation(); setShowLanguageMenu(false); }} className="fixed inset-0 z-[61]" />
                                   <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="absolute top-full mt-2 left-0 right-0 bg-[#0D0E14]/98 border border-white/[0.1] rounded-xl p-2.5 backdrop-blur-3xl shadow-[0_10px_50px_rgba(0,0,0,0.8)] z-[62] grid grid-cols-2 gap-1.5">
                                     {["English", "Turkish", "German", "French", "Spanish", "Italian", "Russian", "Chinese"].map((lang) => (
-                                      <button key={lang} onClick={(e) => { e.stopPropagation(); setLanguage(lang); setShowLanguageMenu(false); }} className={`px-3 py-2.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-center ${language === lang ? "bg-white text-black" : "text-white/40 hover:bg-white/5"}`}>{lang}</button>
+                                      <button key={lang} onClick={(e) => { e.stopPropagation(); setLanguage(lang); localStorage.setItem('mp_language', lang); setShowLanguageMenu(false); }} className={`px-3 py-2.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-center ${language === lang ? "bg-white text-black" : "text-white/40 hover:bg-white/5"}`}>{lang}</button>
                                     ))}
                                   </motion.div>
                                 </>
