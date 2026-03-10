@@ -1007,7 +1007,7 @@ export default function App() {
                       <div className="text-[#7A7B8D] text-[11px] font-semibold tracking-[0.15em] mb-1.5">{activeAsset.symbol}</div>
                       <div className="flex items-center gap-2 mb-4">
                         <div className={`text-white text-[38px] font-bold tracking-tight leading-none transition-all ${isDataLoading ? 'opacity-50 blur-[2px]' : 'opacity-100'}`}>
-                          ${((realTimePrice && !isNaN(realTimePrice)) ? realTimePrice : activeAsset.price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          ${(realTimePrice || activeAsset.price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </div>
                         {realMarketData && (
                           <div className="bg-[#39FF14]/10 border border-[#39FF14]/20 rounded-md px-1.5 py-0.5 self-center">
