@@ -1,182 +1,157 @@
 // @ts-nocheck
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { TrendingUp, TrendingDown, ChevronDown, Brain, Plus, X, Globe, Zap } from "lucide-react";
 import { MarketPulseChart } from "../ChartComponent";
 import { useApp } from "../context/AppContext";
 
-// ── LCD LIVE Badge ──────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// MADDE 11: LCD LIVE Badge — metalik kenarlık, karanlık panel, segment yanma animasyonu
+// ─────────────────────────────────────────────────────────────────────────────
 function LiveBadge({ isLive }) {
-  const [state, setState] = useState(isLive ? "on" : "off");
+  const [phase, setPhase] = useState("off");
 
   React.useEffect(() => {
-    if (!isLive) { setState("off"); return; }
-    // Flicker-on boot sequence
+    if (!isLive) { setPhase("off"); return; }
+    // Flicker boot sequence
     const seq = [
-      [40, "flicker1"],
-      [110, "off"],
-      [170, "flicker2"],
-      [240, "off"],
-      [300, "on"],
+      [50,  "f1"],
+      [120, "off"],
+      [180, "f2"],
+      [260, "off"],
+      [320, "on"],
     ];
-    const timers = seq.map(([ms, s]) => setTimeout(() => setState(s), ms));
+    const timers = seq.map(([ms, p]) => setTimeout(() => setPhase(p), ms));
     return () => timers.forEach(clearTimeout);
   }, [isLive]);
 
-  const isOn = state === "on" || state === "flicker1" || state === "flicker2";
+  const on = phase === "on" || phase === "f1" || phase === "f2";
 
   return (
-    <div
-      style={{
-        display: "inline-flex",
-        background: "linear-gradient(180deg, #bbbbb8 0%, #888886 30%, #666664 60%, #999997 100%)",
-        padding: "1.5px",
+    <div style={{
+      display: "inline-flex",
+      background: "linear-gradient(175deg, #c8c8c5 0%, #888886 35%, #606060 65%, #a0a09e 100%)",
+      padding: "1.5px",
+      borderRadius: "4px",
+      boxShadow: on
+        ? "0 0 10px rgba(200,195,155,0.25), inset 0 1px 0 rgba(255,255,255,0.18)"
+        : "inset 0 1px 0 rgba(255,255,255,0.08)",
+    }}>
+      <div style={{
+        background: "linear-gradient(180deg, #080808 0%, #040404 100%)",
         borderRadius: "3px",
-        boxShadow: isOn
-          ? "0 0 8px rgba(200,195,160,0.3), inset 0 1px 0 rgba(255,255,255,0.2)"
-          : "inset 0 1px 0 rgba(255,255,255,0.1)",
-      }}
-    >
-      <div
-        style={{
-          background: "linear-gradient(180deg, #090909 0%, #050505 100%)",
-          borderRadius: "2px",
-          padding: "2px 7px 3px",
-          display: "flex",
-          alignItems: "center",
-          gap: "4px",
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
-        {/* Inactive segments (dim) */}
-        <span
-          style={{
-            fontFamily: "'Courier New', Courier, monospace",
-            fontSize: "9px",
-            fontWeight: 900,
-            letterSpacing: "0.18em",
-            color: "#1a1a14",
-            userSelect: "none",
-            position: "absolute",
-            left: "7px",
-          }}
-        >
-          LIVE
-        </span>
-        {/* Active segments */}
-        <span
-          style={{
-            fontFamily: "'Courier New', Courier, monospace",
-            fontSize: "9px",
-            fontWeight: 900,
-            letterSpacing: "0.18em",
-            color: isOn ? "#d4cdb0" : "transparent",
-            textShadow: isOn
-              ? "0 0 4px rgba(212,205,176,0.9), 0 0 10px rgba(212,205,176,0.4)"
-              : "none",
-            transition: "color 0.04s, text-shadow 0.04s",
-            position: "relative",
-            userSelect: "none",
-          }}
-        >
-          LIVE
-        </span>
-        {/* Subtle scanline overlay */}
-        {isOn && (
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              background: "repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0,0,0,0.15) 2px)",
-              borderRadius: "2px",
-              pointerEvents: "none",
-            }}
-          />
+        padding: "2.5px 8px 3.5px",
+        position: "relative",
+        overflow: "hidden",
+        minWidth: 42,
+      }}>
+        {/* Dim (inactive) segments always visible */}
+        <span style={{
+          fontFamily: "'Courier New', Courier, monospace",
+          fontSize: "9px", fontWeight: 900, letterSpacing: "0.2em",
+          color: "#141410",
+          position: "absolute", top: "50%", left: 8,
+          transform: "translateY(-50%)",
+          userSelect: "none",
+        }}>LIVE</span>
+
+        {/* Lit segments */}
+        <span style={{
+          fontFamily: "'Courier New', Courier, monospace",
+          fontSize: "9px", fontWeight: 900, letterSpacing: "0.2em",
+          color: on ? "#ddd9bb" : "transparent",
+          textShadow: on ? "0 0 5px rgba(221,217,187,0.95), 0 0 12px rgba(221,217,187,0.35)" : "none",
+          transition: "color 0.04s, text-shadow 0.04s",
+          position: "relative", userSelect: "none",
+        }}>LIVE</span>
+
+        {/* Scanline */}
+        {on && (
+          <div style={{
+            position: "absolute", inset: 0,
+            background: "repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0,0,0,0.12) 2px)",
+            borderRadius: 3, pointerEvents: "none",
+          }} />
         )}
       </div>
     </div>
   );
 }
 
-// ── News Bubble Overlay ─────────────────────────────────────────────────────
-function NewsBubble({ bubble, onClose }) {
+// ─────────────────────────────────────────────────────────────────────────────
+// MADDE 6: News / Consensus Bubble — spring animasyonlu, sentiment renkli
+// ─────────────────────────────────────────────────────────────────────────────
+function NewsBubble({ bubble, onClose, onExpand }) {
   if (!bubble) return null;
+  const col = bubble.sentiment === "Positive" ? "#39FF14"
+            : bubble.sentiment === "Negative"  ? "#FF4444"
+            : "#00FFFF";
 
-  const sentColor = bubble.sentiment === "Positive" ? "#39FF14"
-                  : bubble.sentiment === "Negative"  ? "#FF4444"
-                  : "#00FFFF";
-
-  // Clamp position to stay within chart bounds
-  const left = Math.min(Math.max(bubble.screenX - 120, 4), 220);
-  const top  = Math.max(bubble.screenY - 90, 4);
+  // Keep bubble inside chart (240px wide, positioned from click point)
+  const left = Math.max(4, Math.min(bubble.screenX - 120, 200));
+  const top  = Math.max(4, bubble.screenY - 96);
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.8, y: 8 }}
+      initial={{ opacity: 0, scale: 0.78, y: 10 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.85, y: 4 }}
-      transition={{ type: "spring", damping: 22, stiffness: 340 }}
-      style={{ left, top, zIndex: 40 }}
-      className="absolute w-[240px] pointer-events-auto"
+      exit={{ opacity: 0, scale: 0.82, y: 6 }}
+      transition={{ type: "spring", damping: 20, stiffness: 320 }}
+      style={{ left, top, position: "absolute", width: 248, zIndex: 50, pointerEvents: "auto" }}
     >
-      {/* Arrow pointing down to marker */}
-      <div
-        style={{
-          width: 0, height: 0,
-          borderLeft: "6px solid transparent",
-          borderRight: "6px solid transparent",
-          borderTop: `7px solid ${sentColor}22`,
-          marginLeft: "50%",
-          transform: "translateX(-50%)",
-          position: "absolute",
-          top: "-6px",
-          rotate: "180deg",
-        }}
-      />
-      <div
-        style={{
-          background: "rgba(8,9,14,0.97)",
-          border: `1px solid ${sentColor}33`,
-          borderTop: `2px solid ${sentColor}`,
-          borderRadius: "12px",
-          padding: "10px 12px",
-          backdropFilter: "blur(20px)",
-          boxShadow: `0 8px 32px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.04)`,
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 5 }}>
+      <div style={{
+        background: "rgba(6,7,12,0.97)",
+        border: `1px solid ${col}30`,
+        borderTop: `2px solid ${col}`,
+        borderRadius: 14,
+        padding: "10px 12px 11px",
+        backdropFilter: "blur(24px)",
+        boxShadow: `0 10px 40px rgba(0,0,0,0.85), 0 0 0 1px rgba(255,255,255,0.04)`,
+      }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
             {bubble.type === "news"
-              ? <Globe size={10} color={sentColor} />
-              : <Zap size={10} color={sentColor} />}
-            <span style={{ fontSize: "8px", fontWeight: 900, letterSpacing: "0.2em", color: sentColor, textTransform: "uppercase" }}>
-              {bubble.type === "news" ? "News" : "AI Consensus"}
+              ? <Globe size={9} color={col} />
+              : <Zap size={9} color={col} />}
+            <span style={{ fontSize: 8, fontWeight: 900, letterSpacing: "0.22em", color: col, textTransform: "uppercase" }}>
+              {bubble.type === "news" ? "HABER" : "AI KONSENSUS"}
             </span>
           </div>
-          <button onClick={onClose} style={{ padding: 2, opacity: 0.4, marginTop: -1 }}>
+          <button onClick={onClose} style={{ opacity: 0.35, padding: 2 }}>
             <X size={10} color="white" />
           </button>
         </div>
-        <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.88)", lineHeight: 1.45, fontWeight: 500, margin: 0 }}>
+
+        <p style={{ fontSize: 11, color: "rgba(255,255,255,0.9)", lineHeight: 1.5, fontWeight: 500, margin: 0 }}>
           {bubble.headline || bubble.translation}
         </p>
+
         {bubble.comments?.length > 0 && (
-          <div style={{ marginTop: 7, paddingTop: 7, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-            <span style={{ fontSize: "8px", color: "rgba(122,123,141,0.7)", fontWeight: 700, letterSpacing: "0.1em" }}>
-              {bubble.comments.length} COMMENT{bubble.comments.length > 1 ? "S" : ""}
+          <button
+            onClick={onExpand}
+            style={{
+              marginTop: 8, paddingTop: 7,
+              borderTop: "1px solid rgba(255,255,255,0.06)",
+              display: "flex", alignItems: "center", gap: 4,
+              background: "none", border: "none", padding: "7px 0 0", cursor: "pointer",
+            }}
+          >
+            <span style={{ fontSize: 8, color: "rgba(122,123,141,0.8)", fontWeight: 700, letterSpacing: "0.12em" }}>
+              {bubble.comments.length} YORUM — DETAY →
             </span>
-          </div>
+          </button>
         )}
       </div>
     </motion.div>
   );
 }
 
-// ── Dashboard ───────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Dashboard
+// ─────────────────────────────────────────────────────────────────────────────
 export function Dashboard() {
   const {
-    activeAsset, displayPrice, realMarketData, realQuote, isDataLoading,
+    activeAsset, displayPrice, timeframeChange, realMarketData, isDataLoading,
     chartDataPoints, chartMarkers, setChartCrosshair,
     timeframe, setTimeframe,
     showNewsBubbles, setShowNewsBubbles,
@@ -190,17 +165,20 @@ export function Dashboard() {
   } = useApp();
 
   const [activeBubble, setActiveBubble] = useState(null);
-  const chartContainerRef = useRef(null);
 
   const onMarkerClick = (marker) => {
+    // First tap → show bubble; second tap on same marker → open full sheet
     if (activeBubble?.time === marker.time) {
-      // Second tap: open full detail sheet
       setActiveBubble(null);
       handleMarkerClick(marker);
     } else {
       setActiveBubble(marker);
     }
   };
+
+  // MADDE 1: use timeframeChange, not realQuote/activeAsset.change
+  const changeIsUp  = timeframeChange.isUp;
+  const changeStr   = timeframeChange.str;
 
   return (
     <motion.div key="dashboard" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col">
@@ -217,68 +195,69 @@ export function Dashboard() {
                 <div className={`text-white text-[38px] font-bold tracking-tight leading-none transition-all ${isDataLoading ? "opacity-40 blur-[2px]" : "opacity-100"}`}>
                   ${displayPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
-                {/* LCD LIVE Badge */}
-                <div className="self-center">
+                {/* MADDE 11: LCD LIVE badge */}
+                <div className="self-center mt-1">
                   <LiveBadge isLive={!!realMarketData} />
                 </div>
               </div>
+
+              {/* MADDE 1: timeframeChange — updates on every timeframe switch */}
               <div className="flex items-center gap-3">
                 <div className={`px-2 py-1 rounded-lg flex items-center gap-1 font-bold text-[11px] transition-all ${
-                  (realQuote ? realQuote.isUp : activeAsset.change.startsWith("+"))
+                  changeIsUp
                     ? "bg-gradient-to-r from-[#00FFFF] to-[#39FF14] text-black"
                     : "bg-[#E50000] text-black"
                 }`}>
-                  {(realQuote ? realQuote.isUp : activeAsset.change.startsWith("+"))
-                    ? <TrendingUp className="w-3 h-3" strokeWidth={3} />
+                  {changeIsUp
+                    ? <TrendingUp  className="w-3 h-3" strokeWidth={3} />
                     : <TrendingDown className="w-3 h-3" strokeWidth={3} />}
-                  {realQuote ? `${realQuote.change >= 0 ? "+" : ""}${realQuote.percentChange.toFixed(2)}%` : activeAsset.change}
+                  {changeStr}
                 </div>
                 <div className="text-[#7A7B8D] text-[10px] font-bold tracking-[0.15em] uppercase">{t.liveMarket}</div>
               </div>
             </div>
-            <div
-              onClick={() => setIsMenuOpen(true)}
-              className="w-8 h-8 rounded-full bg-white/5 border border-white/[0.05] flex items-center justify-center hover:bg-white/10 transition-colors cursor-pointer"
-            >
+
+            <div onClick={() => setIsMenuOpen(true)} className="w-8 h-8 rounded-full bg-white/5 border border-white/[0.05] flex items-center justify-center hover:bg-white/10 transition-colors cursor-pointer">
               <ChevronDown className="w-4 h-4 text-white/60" strokeWidth={2} />
             </div>
           </div>
 
-          {/* Chart Area — relative container for bubble overlay */}
-          <div ref={chartContainerRef} className="mt-8 relative h-[220px] w-full rounded-2xl overflow-visible border border-white/5 shadow-[0_0_30px_rgba(0,0,0,0.5)]">
-            {/* Clip inner chart but allow bubbles to overflow */}
-            <div className="absolute inset-0 rounded-2xl overflow-hidden">
+          {/* MADDE 7: Chart with cyan→green gradient. overflow-visible so bubbles can escape */}
+          <div className="mt-8 relative" style={{ height: 220 }}>
+            {/* Inner clip */}
+            <div className="absolute inset-0 rounded-2xl overflow-hidden border border-white/5 shadow-[0_0_30px_rgba(0,0,0,0.5)]">
               <MarketPulseChart
                 key={`${selectedAssetId}-${timeframe}`}
                 data={chartDataPoints}
                 comments={chartMarkers}
                 lineColor="#00FFFF"
-                areaTopColor="rgba(0, 255, 255, 0.20)"
-                areaBottomColor="rgba(57, 255, 20, 0.02)"
+                areaTopColor="rgba(0,255,255,0.22)"
+                areaBottomColor="rgba(57,255,20,0.03)"
                 onCrosshairMove={(param) => {
-                  if (!param || !param.time || !param.seriesData) { setChartCrosshair(null); return; }
+                  if (!param?.time || !param?.seriesData) { setChartCrosshair(null); return; }
                   let price = 0;
-                  param.seriesData.forEach(val => { price = val.value || price; });
+                  param.seriesData.forEach(v => { price = v.value || price; });
                   setChartCrosshair({ idx: 0, price, x: 50, y: 50 });
                 }}
                 onMarkerClick={onMarkerClick}
               />
             </div>
 
-            {/* News bubble overlay */}
+            {/* MADDE 6: News bubble overlay — outside clip, above chart */}
             <AnimatePresence>
               {activeBubble && (
                 <NewsBubble
                   bubble={activeBubble}
                   onClose={() => setActiveBubble(null)}
+                  onExpand={() => { setActiveBubble(null); handleMarkerClick(activeBubble); }}
                 />
               )}
             </AnimatePresence>
 
-            {/* Floating + comment button */}
+            {/* MADDE 8/9: Floating + comment button */}
             <button
               onClick={() => openCommentSheet()}
-              className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-[#00FFFF]/15 border border-[#00FFFF]/30 flex items-center justify-center hover:bg-[#00FFFF]/25 transition-all backdrop-blur-sm z-30"
+              className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-[#00FFFF]/15 border border-[#00FFFF]/30 flex items-center justify-center hover:bg-[#00FFFF]/25 active:scale-95 transition-all backdrop-blur-sm z-30"
             >
               <Plus className="w-4 h-4 text-[#00FFFF]" strokeWidth={2.5} />
             </button>
@@ -288,7 +267,7 @@ export function Dashboard() {
 
       {/* ── Controls ── */}
       <div className="px-6 mt-6 flex flex-col gap-4 w-full">
-        {/* Timeframe */}
+        {/* Timeframe — MADDE 1: switching these recalculates timeframeChange */}
         <div className="flex items-center justify-between w-full">
           {["1H", "1D", "1W", "1M", "1Y", "ALL"].map(tf => (
             <button
@@ -307,13 +286,17 @@ export function Dashboard() {
         <div className="flex justify-center gap-2">
           <button
             onClick={() => setShowNewsBubbles(!showNewsBubbles)}
-            className={`flex-1 px-2 py-2 rounded-xl text-[8px] font-black uppercase tracking-[0.2em] transition-all border ${showNewsBubbles ? "bg-white text-black border-white" : "bg-white/5 text-white/40 border-white/10"}`}
+            className={`flex-1 px-2 py-2 rounded-xl text-[8px] font-black uppercase tracking-[0.2em] transition-all border ${
+              showNewsBubbles ? "bg-white text-black border-white" : "bg-white/5 text-white/40 border-white/10"
+            }`}
           >
             {showNewsBubbles ? t.hideNews : t.showNews}
           </button>
           <button
             onClick={() => setShowAIConsensus(!showAIConsensus)}
-            className={`flex-1 px-2 py-2 rounded-xl text-[8px] font-black uppercase tracking-[0.2em] transition-all border ${showAIConsensus ? "bg-white text-black border-white" : "bg-white/5 text-white/40 border-white/10"}`}
+            className={`flex-1 px-2 py-2 rounded-xl text-[8px] font-black uppercase tracking-[0.2em] transition-all border ${
+              showAIConsensus ? "bg-white text-black border-white" : "bg-white/5 text-white/40 border-white/10"
+            }`}
           >
             {showAIConsensus ? t.hideConsensus : t.showConsensus}
           </button>
@@ -332,7 +315,9 @@ export function Dashboard() {
           >
             {hideMyCommentsBar
               ? (language === "Turkish" ? "Gizli" : "Hidden")
-              : (language === "Turkish" ? `Yorumlarım (${allAssetUserComments.length})` : `My Comments (${allAssetUserComments.length})`)}
+              : (language === "Turkish"
+                  ? `Yorumlarım (${allAssetUserComments.length})`
+                  : `My Comments (${allAssetUserComments.length})`)}
           </button>
         </div>
 
