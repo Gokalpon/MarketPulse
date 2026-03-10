@@ -152,7 +152,7 @@ function NewsBubble({ bubble, onClose, onExpand }) {
 export function Dashboard() {
   const {
     activeAsset, displayPrice, timeframeChange, realMarketData, isDataLoading,
-    chartDataPoints, chartMarkers, setChartCrosshair,
+    chartDataPoints, chartMarkers, setChartCrosshair, chartCrosshair,
     timeframe, setTimeframe,
     showNewsBubbles, setShowNewsBubbles,
     showAIConsensus, setShowAIConsensus,
@@ -254,13 +254,36 @@ export function Dashboard() {
               )}
             </AnimatePresence>
 
-            {/* MADDE 8/9: Floating + comment button */}
-            <button
-              onClick={() => openCommentSheet()}
-              className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-[#00FFFF]/15 border border-[#00FFFF]/30 flex items-center justify-center hover:bg-[#00FFFF]/25 active:scale-95 transition-all backdrop-blur-sm z-30"
-            >
-              <Plus className="w-4 h-4 text-[#00FFFF]" strokeWidth={2.5} />
-            </button>
+            {/* MADDE 8/9: ADD COMMENT button — large gradient when crosshair active */}
+            <AnimatePresence mode="wait">
+              {chartCrosshair ? (
+                <motion.button
+                  key="add-comment-large"
+                  initial={{ opacity: 0, y: 8, scale: 0.92 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 6, scale: 0.92 }}
+                  transition={{ type: "spring", damping: 22, stiffness: 300 }}
+                  onClick={() => openCommentSheet()}
+                  className="absolute bottom-3 right-3 flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-wider text-black active:scale-95 z-30"
+                  style={{ background: "linear-gradient(90deg, #00FFFF 0%, #39FF14 100%)", boxShadow: "0 0 20px rgba(0,255,255,0.35)" }}
+                >
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  Add Comment
+                </motion.button>
+              ) : (
+                <motion.button
+                  key="add-comment-small"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  onClick={() => openCommentSheet()}
+                  className="absolute bottom-3 right-3 w-8 h-8 rounded-full flex items-center justify-center hover:bg-[#00FFFF]/25 active:scale-95 transition-all backdrop-blur-sm z-30"
+                  style={{ background: "rgba(0,255,255,0.15)", border: "1px solid rgba(0,255,255,0.3)" }}
+                >
+                  <Plus className="w-4 h-4 text-[#00FFFF]" strokeWidth={2.5} />
+                </motion.button>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </div>
