@@ -400,10 +400,13 @@ export default function App() {
       }));
     }
 
-    // Determine step size roughly based on timeframe for MOCK data
-    let intervalSeconds = 3600; // default 1H
-    if (timeframe === "1D") intervalSeconds = 86400 * 5; // 5 days per point rough
-    if (timeframe === "1W") intervalSeconds = 86400 * 7;
+    // Proper intervals per timeframe so chart fills correctly (60 points per timeframe)
+    let intervalSeconds = 60;           // 1H: 1 point per minute → 60min
+    if (timeframe === "1D")  intervalSeconds = 60 * 24;        // 1D: 1 point per 24min → ~1 day
+    if (timeframe === "1W")  intervalSeconds = 60 * 168;       // 1W: 1 point per 2.8h → 7 days
+    if (timeframe === "1M")  intervalSeconds = 86400;          // 1M: 1 point per day → 60 days
+    if (timeframe === "1Y")  intervalSeconds = 86400 * 6;      // 1Y: 1 point per 6 days → ~1 year
+    if (timeframe === "ALL") intervalSeconds = 86400 * 30;     // ALL: 1 point per month → 5 years
     // Map points backwards from current time
     const now = Math.floor(Date.now() / 1000);
     return activeData.map((val, i) => ({
@@ -1066,14 +1069,14 @@ export default function App() {
                   </div>
 
                   {/* Chart Area */}
-                  <div className="mt-8 relative h-[240px] w-full rounded-2xl overflow-hidden border border-white/5 shadow-[0_0_30px_rgba(0,0,0,0.5)]">
+                  <div className="mt-8 relative h-[220px] w-full rounded-2xl overflow-hidden border border-white/5 shadow-[0_0_30px_rgba(0,0,0,0.5)]">
                     <MarketPulseChart 
                       key={`${selectedAssetId}-${timeframe}`}
                       data={chartDataPoints as any}
                       comments={chartMarkers}
-                      lineColor={(realQuote ? realQuote.isUp : activeAsset.change.startsWith('+')) ? '#39FF14' : '#E50000'}
-                      areaTopColor={(realQuote ? realQuote.isUp : activeAsset.change.startsWith('+')) ? 'rgba(57, 255, 20, 0.4)' : 'rgba(229, 0, 0, 0.4)'}
-                      areaBottomColor={(realQuote ? realQuote.isUp : activeAsset.change.startsWith('+')) ? 'rgba(57, 255, 20, 0.0)' : 'rgba(229, 0, 0, 0.0)'}
+                      lineColor='#00FFFF'
+                      areaTopColor='rgba(0, 255, 255, 0.15)'
+                      areaBottomColor='rgba(0, 255, 255, 0.0)'
                       onCrosshairMove={(param: any) => {
                          if (!param || !param.time || !param.seriesData) {
                             setChartCrosshair(null);
