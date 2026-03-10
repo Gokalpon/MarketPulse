@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@google/genai": "^1.44.0",
+    "@supabase/supabase-js": "^2.99.0",
+    "lightweight-charts": "^5.1.0",
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
     "react": "^19.0.0",
