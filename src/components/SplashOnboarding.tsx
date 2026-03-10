@@ -10,10 +10,12 @@ export function SplashScreen() {
   if (!showSplash) return null;
   return (
     <div
-      className={`fixed inset-0 z-[400] bg-[#030508] flex flex-col items-center transition-all duration-700 ${isExitingSplash ? "opacity-0 scale-110" : "opacity-100 scale-100"}`}
+      className={`fixed inset-0 z-[400] flex flex-col items-center transition-all duration-700 ${isExitingSplash ? "opacity-0 scale-110" : "opacity-100 scale-100"}`}
+      style={{ backgroundImage: `url(${APP_ASSETS.splashBackground})`, backgroundSize: "cover", backgroundPosition: "center" }}
       onClick={handleSplashClick}
     >
-      <div className="flex-1 flex flex-col items-center justify-center gap-8">
+      <div className="absolute inset-0 bg-black/40" />
+      <div className="relative flex-1 flex flex-col items-center justify-center gap-8">
         <motion.div
           animate={isSplashPressed ? { scale: [1, 1.2, 0.9, 1.1, 1], rotate: [0, -5, 5, -3, 0] } : {}}
           transition={{ duration: 0.6 }}
@@ -25,10 +27,10 @@ export function SplashScreen() {
             <span className="text-[36px] font-thin text-white/90 tracking-tighter">Market</span>
             <span className="text-[36px] font-bold text-white tracking-tighter">Pulse</span>
           </div>
-          <p className="text-[11px] font-medium text-white/30 tracking-[0.3em] uppercase mt-2">Real-time market intelligence</p>
+          <p className="text-[11px] font-medium text-white/30 tracking-[0.3em] uppercase mt-2">Let the charts speak.</p>
         </div>
       </div>
-      <div className="mb-16 flex flex-col items-center gap-3 opacity-40">
+      <div className="relative mb-16 flex flex-col items-center gap-3 opacity-40">
         <span className="text-[10px] text-white/50 font-bold uppercase tracking-widest">Tap to continue</span>
         <motion.div animate={{ y: [0, 6, 0] }} transition={{ repeat: Infinity, duration: 1.5 }}>
           <ChevronDown className="w-4 h-4 text-white/40" />
@@ -49,8 +51,12 @@ export function OnboardingScreen() {
 
   if (onboardingStep === 0) {
     return (
-      <div className="fixed inset-0 z-[300] bg-[#030508] flex flex-col items-center justify-center px-8">
-        <div className="w-full max-w-[360px] flex flex-col items-center gap-8">
+      <div
+        className="fixed inset-0 z-[300] flex flex-col items-center justify-center px-8"
+        style={{ backgroundImage: `url(${APP_ASSETS.splashBackground})`, backgroundSize: "cover", backgroundPosition: "center" }}
+      >
+        <div className="absolute inset-0 bg-black/50" />
+        <div className="relative w-full max-w-[360px] flex flex-col items-center gap-8">
           <img src={APP_ASSETS.splashLogo} alt="MarketPulse" className="w-20 h-20 object-contain" />
           <div className="text-center">
             <h1 className="text-[28px] font-black tracking-tight text-white mb-2">Welcome to<br />MarketPulse</h1>
