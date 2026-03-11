@@ -1,48 +1,48 @@
 // @ts-nocheck
 import React from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { AnimatePresence } from "motion/react";
 import { List, Globe, Users, Settings } from "lucide-react";
-
-import { AppProvider, useApp } from "./context/AppContext";
+import { motion } from "motion/react";
 import { APP_ASSETS } from "./data";
-
+import { AppProvider, useApp } from "./context/AppContext";
 import { SplashScreen, OnboardingScreen } from "./components/SplashOnboarding";
 import { Header } from "./components/Header";
 import { CommentSheet, MyCommentsSheet, DetailSheet } from "./components/Modals";
-
-import { Dashboard } from "./screens/Dashboard";
-import { Watchlist } from "./screens/Watchlist";
-import { Markets } from "./screens/Markets";
-import { Community } from "./screens/Community";
-import { Profile } from "./screens/Profile";
+import { Dashboard }  from "./screens/Dashboard";
+import { Watchlist }  from "./screens/Watchlist";
+import { Markets }    from "./screens/Markets";
+import { Community }  from "./screens/Community";
+import { Profile }    from "./screens/Profile";
 
 function AppShell() {
   const { showSplash, isLoggedIn, activeTab, setActiveTab, setSelectedPoint, setProfilePage, setChartCrosshair } = useApp();
 
-  if (showSplash) return <SplashScreen />;
-  if (!isLoggedIn) return <OnboardingScreen />;
+  if (showSplash)   return <SplashScreen />;
+  if (!isLoggedIn)  return <OnboardingScreen />;
 
   return (
     <div className="min-h-screen bg-[#030508] flex justify-center overflow-x-hidden">
-      <div className="w-full max-w-[430px] min-h-screen text-white font-sans selection:bg-[#00FFFF]/30 relative shadow-[0_0_100px_rgba(0,0,0,1)] flex flex-col animate-in fade-in duration-700 overflow-x-hidden">
+      <div className="w-full max-w-[430px] min-h-screen text-white font-sans selection:bg-[#00FFFF]/30 relative shadow-[0_0_100px_rgba(0,0,0,1)] flex flex-col overflow-x-hidden">
 
         {/* Background */}
-        <div className="absolute inset-0 z-0 pointer-events-none" style={{ backgroundImage: `url(${APP_ASSETS.mainBackground})`, backgroundSize: "cover", backgroundPosition: "center", backgroundRepeat: "no-repeat" }} />
+        <div
+          className="absolute inset-0 z-0 pointer-events-none"
+          style={{ backgroundImage: `url(${APP_ASSETS.mainBackground})`, backgroundSize: "cover", backgroundPosition: "center", backgroundRepeat: "no-repeat" }}
+        />
 
         <Header />
 
-        {/* Main content */}
-        <main className="flex-1 pt-[100px] pb-[90px] relative z-10 overflow-y-auto">
+        <main className="relative z-20 pt-[110px] pb-32">
           <AnimatePresence mode="wait">
-            {activeTab === "dashboard" && <Dashboard />}
-            {activeTab === "watchlist" && <Watchlist />}
-            {activeTab === "markets" && <Markets />}
-            {activeTab === "community" && <Community />}
-            {activeTab === "profile" && <Profile />}
+            {activeTab === "dashboard"  && <Dashboard />}
+            {activeTab === "watchlist"  && <Watchlist />}
+            {activeTab === "markets"    && <Markets />}
+            {activeTab === "community"  && <Community />}
+            {activeTab === "profile"    && <Profile />}
           </AnimatePresence>
         </main>
 
-        {/* Sheets / Modals */}
+        {/* Modals */}
         <CommentSheet />
         <MyCommentsSheet />
         <DetailSheet />
@@ -58,11 +58,11 @@ function AppShell() {
             </defs>
           </svg>
           {[
-            { id: "dashboard", icon: <img src={APP_ASSETS.tabLogo} alt="Dashboard" className="w-6 h-6 object-contain" /> },
-            { id: "watchlist", icon: <List className="w-6 h-6" /> },
-            { id: "markets", icon: <Globe className="w-6 h-6" /> },
-            { id: "community", icon: <Users className="w-6 h-6" /> },
-            { id: "profile", icon: <Settings className="w-6 h-6" /> },
+            { id: "dashboard",  icon: <img src={APP_ASSETS.tabLogo} alt="Dashboard" className="w-6 h-6 object-contain" /> },
+            { id: "watchlist",  icon: <List className="w-6 h-6" /> },
+            { id: "markets",    icon: <Globe className="w-6 h-6" /> },
+            { id: "community",  icon: <Users className="w-6 h-6" /> },
+            { id: "profile",    icon: <Settings className="w-6 h-6" /> },
           ].map(tab => (
             <button
               key={tab.id}

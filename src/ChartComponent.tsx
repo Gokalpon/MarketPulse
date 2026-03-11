@@ -2,10 +2,6 @@
 import React, { useEffect, useRef, useCallback } from "react";
 import { createChart, ColorType, AreaSeries, createSeriesMarkers } from "lightweight-charts";
 
-// MADDE 7: Chart gradient cyan top → green bottom
-// MADDE 6: createSeriesMarkers (v5 API) — zoom-aware, max 2 in viewport
-// MADDE 10: ResizeObserver — handles all layout changes including horizontal resize
-
 export const MarketPulseChart = ({
   data = [],
   comments = [],
@@ -25,13 +21,11 @@ export const MarketPulseChart = ({
   const allMarkers    = useRef([]);
   const debounce      = useRef(null);
 
-  // ── Update visible markers: pick top 2 by importance in current viewport ──
   const refreshMarkers = useCallback(() => {
     if (!chartRef.current || !seriesRef.current) return;
     try {
       const vr = chartRef.current.timeScale().getVisibleRange();
       if (!vr) return;
-
       const inView = allMarkers.current.filter(m => m.time >= vr.from && m.time <= vr.to);
       const top2 = [...inView]
         .sort((a, b) => (b.importance || 5) - (a.importance || 5))
@@ -41,15 +35,12 @@ export const MarketPulseChart = ({
       const mData = top2.map(m => ({
         time: m.time,
         position: m.sentiment === "Negative" ? "belowBar" : "aboveBar",
-        color: m.sentiment === "Positive" ? "#39FF14"
-             : m.sentiment === "Negative"  ? "#FF4444"
-             : "#00FFFF",
+        color: m.sentiment === "Positive" ? "#39FF14" : m.sentiment === "Negative" ? "#FF4444" : "#00FFFF",
         shape: "circle",
         text: "",
         size: 2,
       }));
 
-      // v5: createSeriesMarkers — prefer it, fallback to setMarkers
       try {
         if (markersPlugin.current && typeof markersPlugin.current.setData === "function") {
           markersPlugin.current.setData(mData);
@@ -70,7 +61,6 @@ export const MarketPulseChart = ({
     debounce.current = setTimeout(refreshMarkers, 80);
   }, [refreshMarkers]);
 
-  // ── Mount chart once ──
   useEffect(() => {
     if (!containerRef.current) return;
     const el = containerRef.current;
@@ -94,8 +84,6 @@ export const MarketPulseChart = ({
         borderVisible: false,
         rightOffset: 3,
         barSpacing: 6,
-        fixLeftEdge: false,
-        fixRightEdge: false,
       },
       rightPriceScale: {
         borderVisible: false,
@@ -107,13 +95,11 @@ export const MarketPulseChart = ({
         vertLine: { color: "rgba(0,255,255,0.3)", style: 1, width: 1, labelBackgroundColor: "#00FFFF" },
         horzLine: { color: "rgba(0,255,255,0.3)", style: 1, width: 1, labelBackgroundColor: "#00FFFF" },
       },
-      // MADDE 10: scroll + scale fully enabled
       handleScroll: { pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false },
       handleScale:  { mouseWheel: true, pinch: true, axisPressedMouseMove: { time: true, price: true } },
     });
     chartRef.current = chart;
 
-    // MADDE 7: Cyan line, cyan-to-green gradient fill
     const series = chart.addSeries(AreaSeries, {
       lineColor,
       topColor:    areaTopColor,
@@ -129,19 +115,16 @@ export const MarketPulseChart = ({
 
     if (onCrosshairMove) chart.subscribeCrosshairMove(p => onCrosshairMove(p));
 
-    // MADDE 6: click → find nearest marker within tolerance → callback
     chart.subscribeClick(param => {
       if (!param?.time || !param?.point) return;
       const clickTime = Number(param.time);
       const markers = allMarkers.current;
       if (!markers.length) return;
-
       const nearest = markers.reduce((best, m) => {
-        const d  = Math.abs(m.time - clickTime);
+        const d = Math.abs(m.time - clickTime);
         const bd = Math.abs((best?.time ?? Infinity) - clickTime);
         return d < bd ? m : best;
       }, null);
-
       if (nearest && onMarkerClick) {
         const vr   = chart.timeScale().getVisibleRange();
         const span = ((vr?.to ?? 0) - (vr?.from ?? 0)) * 0.07;
@@ -151,10 +134,8 @@ export const MarketPulseChart = ({
       }
     });
 
-    // Zoom/scroll → update visible marker set
     chart.timeScale().subscribeVisibleTimeRangeChange(schedule);
 
-    // MADDE 10: ResizeObserver — handles flex/grid layout reflows too
     const ro = new ResizeObserver(entries => {
       for (const entry of entries) {
         const w = Math.floor(entry.contentRect.width);
@@ -176,9 +157,8 @@ export const MarketPulseChart = ({
       chartRef.current  = null;
       seriesRef.current = null;
     };
-  }, []); // mount once — do NOT add deps
+  }, []);
 
-  // ── Update data when prop changes ──
   useEffect(() => {
     const series = seriesRef.current;
     if (!series) return;
@@ -198,7 +178,6 @@ export const MarketPulseChart = ({
     } catch (e) { console.warn("setData error:", e); }
   }, [data]);
 
-  // ── Update marker pool when comments prop changes ──
   useEffect(() => {
     allMarkers.current = (comments || [])
       .filter(c => c?.time && !isNaN(Number(c.time)))

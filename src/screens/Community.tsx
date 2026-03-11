@@ -1,42 +1,43 @@
 // @ts-nocheck
 import React from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { TrendingUp, TrendingDown, MessageCircle, Share2, Heart, ChevronDown } from "lucide-react";
+import { Heart, MessageCircle, Share2, ChevronDown } from "lucide-react";
 import { ASSETS, COMMUNITY_POSTS } from "../data";
 import { useApp } from "../context/AppContext";
 
-const Sparkline = ({ data, color }) => {
-  const min = Math.min(...data), max = Math.max(...data), range = max - min;
-  const points = data.map((v, i) => ({ x: (i / (data.length - 1)) * 60, y: 20 - ((v - min) / range) * 20 }));
-  const d = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
-  return (
-    <svg width="60" height="20" className="overflow-visible">
-      <path d={d} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
+const Sparkline = ({ data, color }: { data: number[]; color: string }) => {
+  if (!data || data.length < 2) return null;
+  const min = Math.min(...data), max = Math.max(...data), range = max - min || 1;
+  const pts = data.map((v, i) => ({ x: (i / (data.length - 1)) * 60, y: 20 - ((v - min) / range) * 20 }));
+  const d = pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
+  return <svg width="60" height="20" className="overflow-visible"><path d={d} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 };
 
 export function Community() {
   const {
     communityTab, setCommunityTab,
-    postVotes, setPostVotes,
     trendingExpanded, setTrendingExpanded,
     commentsExpanded, setCommentsExpanded,
     trendingTimeframe, setTrendingTimeframe,
     commentsTimeframe, setCommentsTimeframe,
-    t, language,
+    t,
   } = useApp();
 
   return (
-    <motion.div key="community" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="px-6 pt-12 pb-24">
+    <motion.div
+      key="community"
+      initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
+      className="px-6 pt-12 pb-24"
+    >
       <h2 className="text-2xl font-black tracking-tight uppercase mb-6 mt-2">{t.community}</h2>
 
       {/* Tabs */}
       <div className="flex gap-4 mb-6 border-b border-white/[0.05] pb-2">
         {["community", "trending"].map(tab => (
-          <button key={tab} onClick={() => setCommunityTab(tab)} className={`text-[13px] font-bold uppercase tracking-wider pb-2 relative ${communityTab === tab ? "text-white" : "text-[#7A7B8D]"}`}>
+          <button key={tab} onClick={() => setCommunityTab(tab)}
+            className={`text-[13px] font-bold uppercase tracking-wider pb-2 relative ${communityTab === tab ? "text-white" : "text-[#7A7B8D]"}`}>
             {tab === "community" ? t.community : t.trending}
-            {communityTab === tab && <div className={`absolute bottom-[-9px] left-0 right-0 h-0.5 ${tab === "community" ? "bg-[#00FFFF]" : "bg-[#39FF14]"}`} />}
+            {communityTab === tab && <div className={`absolute bottom-[-9px] left-0 right-0 h-0.5 ${tab === "trending" ? "bg-[#39FF14]" : "bg-[#00FFFF]"}`} />}
           </button>
         ))}
       </div>
@@ -61,22 +62,10 @@ export function Community() {
                 </div>
               </div>
               <p className="text-[14px] text-white/90 leading-relaxed mb-4">{post.text}</p>
-              <div className="flex items-center gap-4 text-[#7A7B8D]">
-                <button onClick={() => setPostVotes(v => ({ ...v, [post.id]: v[post.id] === "up" ? null : "up" }))} className={`flex items-center gap-1.5 transition-all ${postVotes[post.id] === "up" ? "text-[#39FF14] scale-110" : "hover:text-[#39FF14]"}`}>
-                  <TrendingUp className="w-4 h-4" strokeWidth={2.5} />
-                  <span className="text-[12px] font-bold">{post.likes + (postVotes[post.id] === "up" ? 1 : 0)}</span>
-                </button>
-                <button onClick={() => setPostVotes(v => ({ ...v, [post.id]: v[post.id] === "down" ? null : "down" }))} className={`flex items-center gap-1.5 transition-all ${postVotes[post.id] === "down" ? "text-[#E50000] scale-110" : "hover:text-[#E50000]"}`}>
-                  <TrendingDown className="w-4 h-4" strokeWidth={2.5} />
-                  <span className="text-[12px] font-bold">{Math.floor(post.likes * 0.12) + (postVotes[post.id] === "down" ? 1 : 0)}</span>
-                </button>
-                <button className="flex items-center gap-1.5 hover:text-[#00FFFF] transition-colors">
-                  <MessageCircle className="w-4 h-4" />
-                  <span className="text-[12px] font-bold">{post.comments}</span>
-                </button>
-                <button className="flex items-center gap-1.5 hover:text-white transition-colors ml-auto">
-                  <Share2 className="w-4 h-4" />
-                </button>
+              <div className="flex items-center gap-6 text-[#7A7B8D]">
+                <button className="flex items-center gap-1.5 hover:text-[#39FF14] transition-colors"><Heart className="w-4 h-4" /><span className="text-[12px] font-bold">{post.likes}</span></button>
+                <button className="flex items-center gap-1.5 hover:text-[#00FFFF] transition-colors"><MessageCircle className="w-4 h-4" /><span className="text-[12px] font-bold">{post.comments}</span></button>
+                <button className="flex items-center gap-1.5 hover:text-white transition-colors ml-auto"><Share2 className="w-4 h-4" /></button>
               </div>
             </div>
           ))}
@@ -87,17 +76,15 @@ export function Community() {
           <div className="bg-white/5 border border-white/[0.03] rounded-2xl overflow-hidden">
             <button onClick={() => setTrendingExpanded(!trendingExpanded)} className="w-full flex items-center justify-between p-4 bg-black/20 hover:bg-white/5 transition-colors">
               <h3 className="text-[11px] font-bold text-[#7A7B8D] uppercase tracking-widest">{t.trendingStocks}</h3>
-              <div className="flex items-center gap-3">
-                <div className="px-2 py-0.5 rounded bg-white/5 text-[8px] font-black text-white/40 uppercase tracking-tighter">{t.expandView}</div>
-                <ChevronDown className={`w-4 h-4 text-[#7A7B8D] transition-transform duration-300 ${trendingExpanded ? "rotate-180" : ""}`} />
-              </div>
+              <ChevronDown className={`w-4 h-4 text-[#7A7B8D] transition-transform duration-300 ${trendingExpanded ? "rotate-180" : ""}`} />
             </button>
             <AnimatePresence>
               {trendingExpanded && (
                 <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="flex flex-col gap-2 p-3">
                   <div className="flex items-center gap-1 mb-4 overflow-x-auto scrollbar-hide pb-1">
                     {["Daily", "Weekly", "Monthly", "Yearly", "All Time"].map(tf => (
-                      <button key={tf} onClick={() => setTrendingTimeframe(tf)} className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all whitespace-nowrap ${tf === trendingTimeframe ? "bg-[#00FFFF] text-black" : "bg-white/5 text-[#7A7B8D] hover:bg-white/10"}`}>
+                      <button key={tf} onClick={() => setTrendingTimeframe(tf)}
+                        className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all whitespace-nowrap ${tf === trendingTimeframe ? "bg-[#00FFFF] text-black" : "bg-white/5 text-[#7A7B8D] hover:bg-white/10"}`}>
                         {tf === "Daily" ? t.daily : tf === "Weekly" ? t.weekly : tf === "Monthly" ? t.monthly : tf === "Yearly" ? t.yearly : t.allTime}
                       </button>
                     ))}
@@ -107,8 +94,8 @@ export function Community() {
                       <div className="flex items-center gap-3">
                         <span className="text-[#7A7B8D] font-bold text-xs">#{i + 1}</span>
                         <div>
-                          <span className="font-bold text-sm block">{asset.name}</span>
-                          <span className="text-[9px] text-[#7A7B8D] font-medium">{asset.symbol}</span>
+                          <div className="font-bold text-sm">{asset.name}</div>
+                          <div className="text-[9px] text-[#7A7B8D]">{asset.symbol}</div>
                         </div>
                       </div>
                       <div className="flex items-center gap-4">
@@ -126,17 +113,15 @@ export function Community() {
           <div className="bg-white/5 border border-white/[0.03] rounded-2xl overflow-hidden">
             <button onClick={() => setCommentsExpanded(!commentsExpanded)} className="w-full flex items-center justify-between p-4 bg-black/20 hover:bg-white/5 transition-colors">
               <h3 className="text-[11px] font-bold text-[#7A7B8D] uppercase tracking-widest">{t.trendingComments}</h3>
-              <div className="flex items-center gap-3">
-                <div className="px-2 py-0.5 rounded bg-white/5 text-[8px] font-black text-white/40 uppercase tracking-tighter">{t.expandView}</div>
-                <ChevronDown className={`w-4 h-4 text-[#7A7B8D] transition-transform duration-300 ${commentsExpanded ? "rotate-180" : ""}`} />
-              </div>
+              <ChevronDown className={`w-4 h-4 text-[#7A7B8D] transition-transform duration-300 ${commentsExpanded ? "rotate-180" : ""}`} />
             </button>
             <AnimatePresence>
               {commentsExpanded && (
                 <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="flex flex-col gap-3 p-3">
                   <div className="flex items-center gap-1 mb-4 overflow-x-auto scrollbar-hide pb-1">
                     {["Daily", "Weekly", "Monthly", "Yearly", "All Time"].map(tf => (
-                      <button key={tf} onClick={() => setCommentsTimeframe(tf)} className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all whitespace-nowrap ${tf === commentsTimeframe ? "bg-[#39FF14] text-black" : "bg-white/5 text-[#7A7B8D] hover:bg-white/10"}`}>
+                      <button key={tf} onClick={() => setCommentsTimeframe(tf)}
+                        className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all whitespace-nowrap ${tf === commentsTimeframe ? "bg-[#39FF14] text-black" : "bg-white/5 text-[#7A7B8D] hover:bg-white/10"}`}>
                         {tf === "Daily" ? t.daily : tf === "Weekly" ? t.weekly : tf === "Monthly" ? t.monthly : tf === "Yearly" ? t.yearly : t.allTime}
                       </button>
                     ))}
