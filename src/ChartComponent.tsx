@@ -8,8 +8,8 @@ export const MarketPulseChart = ({
   onCrosshairMove,
   onMarkerClick,
   onVisibleMarkersChange,
+  onCoordConverters,        // ← NEW: fires pixel converters on every layout change
   lineColor = "#00FFFF",
-  backgroundColor = "transparent",
   areaTopColor = "rgba(0, 255, 255, 0.18)",
   areaBottomColor = "rgba(57, 255, 20, 0.02)",
 }) => {
@@ -19,7 +19,29 @@ export const MarketPulseChart = ({
   const markersPlugin = useRef(null);
   const allMarkers    = useRef([]);
   const debounce      = useRef(null);
+  const coordDebounce = useRef(null);
 
+  // ── Fire coordinate converters to parent for HTML overlay positioning ──
+  const fireCoords = useCallback(() => {
+    if (!onCoordConverters || !chartRef.current || !seriesRef.current || !containerRef.current) return;
+    onCoordConverters({
+      timeToX: (time) => {
+        try { return chartRef.current?.timeScale().timeToCoordinate(time) ?? null; } catch { return null; }
+      },
+      priceToY: (price) => {
+        try { return seriesRef.current?.priceToCoordinate(price) ?? null; } catch { return null; }
+      },
+      width:  containerRef.current?.clientWidth  || 300,
+      height: containerRef.current?.clientHeight || 220,
+    });
+  }, [onCoordConverters]);
+
+  const scheduleCoords = useCallback(() => {
+    if (coordDebounce.current) clearTimeout(coordDebounce.current);
+    coordDebounce.current = setTimeout(fireCoords, 30);
+  }, [fireCoords]);
+
+  // ── Marker refresh ──
   const refreshMarkers = useCallback(() => {
     if (!chartRef.current || !seriesRef.current) return;
     try {
@@ -30,6 +52,7 @@ export const MarketPulseChart = ({
         .sort((a, b) => (b.importance || 5) - (a.importance || 5))
         .slice(0, 2)
         .sort((a, b) => a.time - b.time);
+
       const mData = top2.map(m => ({
         time: m.time,
         position: m.sentiment === "Negative" ? "belowBar" : "aboveBar",
@@ -38,6 +61,7 @@ export const MarketPulseChart = ({
         text: "",
         size: 2,
       }));
+
       try {
         if (markersPlugin.current && typeof markersPlugin.current.setData === "function") {
           markersPlugin.current.setData(mData);
@@ -57,6 +81,7 @@ export const MarketPulseChart = ({
     debounce.current = setTimeout(refreshMarkers, 80);
   }, [refreshMarkers]);
 
+  // ── Mount chart ──
   useEffect(() => {
     if (!containerRef.current) return;
     const el = containerRef.current;
@@ -83,9 +108,9 @@ export const MarketPulseChart = ({
       rightPriceScale: {
         visible: false,
         borderVisible: false,
-        scaleMargins: { top: 0.08, bottom: 0.04 },
+        scaleMargins: { top: 0.10, bottom: 0.06 },
       },
-      leftPriceScale:  { visible: false },
+      leftPriceScale: { visible: false },
       crosshair: {
         mode: 1,
         vertLine: {
@@ -111,8 +136,8 @@ export const MarketPulseChart = ({
       topColor:    areaTopColor,
       bottomColor: areaBottomColor,
       lineWidth: 2,
-      priceLineVisible:  false,
-      lastValueVisible:  false,
+      priceLineVisible: false,
+      lastValueVisible: false,
       crosshairMarkerVisible:         true,
       crosshairMarkerRadius:          5,
       crosshairMarkerBorderColor:     "#00FFFF",
@@ -142,7 +167,11 @@ export const MarketPulseChart = ({
       }
     });
 
-    chart.timeScale().subscribeVisibleTimeRangeChange(schedule);
+    // Refresh markers + coords on zoom/scroll
+    chart.timeScale().subscribeVisibleTimeRangeChange(() => {
+      schedule();
+      scheduleCoords();
+    });
 
     const ro = new ResizeObserver(entries => {
       for (const entry of entries) {
@@ -151,6 +180,7 @@ export const MarketPulseChart = ({
         if (chartRef.current && w > 0) {
           chartRef.current.applyOptions({ width: w, height: h });
           chartRef.current.timeScale().fitContent();
+          scheduleCoords();
         }
       }
     });
@@ -158,6 +188,7 @@ export const MarketPulseChart = ({
 
     return () => {
       if (debounce.current) clearTimeout(debounce.current);
+      if (coordDebounce.current) clearTimeout(coordDebounce.current);
       ro.disconnect();
       try { markersPlugin.current?.detach?.(); } catch {}
       markersPlugin.current = null;
@@ -167,29 +198,34 @@ export const MarketPulseChart = ({
     };
   }, []);
 
+  // ── Data update ──
   useEffect(() => {
     const series = seriesRef.current;
     if (!series) return;
     if (!data?.length) { try { series.setData([]); } catch {} return; }
+
     const cleaned = data
       .map(d => ({ time: Number(d.time ?? d), value: Number(d.value ?? d) }))
       .filter(d => d.time > 0 && d.value > 0 && !isNaN(d.time) && !isNaN(d.value))
       .sort((a, b) => a.time - b.time)
       .filter((d, i, arr) => i === 0 || d.time !== arr[i - 1].time);
+
     if (!cleaned.length) return;
     try {
       series.setData(cleaned);
       chartRef.current?.timeScale().fitContent();
-      setTimeout(schedule, 200);
+      setTimeout(() => { schedule(); scheduleCoords(); }, 200);
     } catch (e) { console.warn("setData error:", e); }
   }, [data]);
 
+  // ── Markers update ──
   useEffect(() => {
     allMarkers.current = (comments || [])
       .filter(c => c?.time && !isNaN(Number(c.time)))
       .map(c => ({ ...c, time: Number(c.time) }))
       .sort((a, b) => a.time - b.time);
     schedule();
+    scheduleCoords();
   }, [comments, schedule]);
 
   return (

@@ -5,7 +5,11 @@ import { TRANSLATIONS } from "../translations";
 import { GoogleGenAI } from "@google/genai";
 
 // ── Twelve Data API ──────────────────────────────────────────────────────────
-const TD_KEY = process.env.TWELVE_DATA_API_KEY || "";
+// Vite: VITE_TWELVE_DATA_API_KEY in .env  |  Vercel: env var with same name
+const TD_KEY: string =
+  (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_TWELVE_DATA_API_KEY) ||
+  (typeof process !== "undefined" && process.env?.TWELVE_DATA_API_KEY) ||
+  "";
 const TD_BASE = "https://api.twelvedata.com";
 
 const SYMBOL_MAP: Record<string, string> = {
@@ -63,7 +67,10 @@ async function fetchQuote(assetId: string) {
 // ── AI Client ────────────────────────────────────────────────────────────────
 let aiClient: GoogleGenAI | null = null;
 const getAIClient = () => {
-  const key = process.env.GEMINI_API_KEY;
+  const key =
+    (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_GEMINI_API_KEY) ||
+    (typeof process !== "undefined" && process.env?.GEMINI_API_KEY) ||
+    "";
   if (!key) return null;
   if (!aiClient) aiClient = new GoogleGenAI({ apiKey: key });
   return aiClient;
@@ -263,7 +270,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // ── Comment helpers
   const openCommentSheet = () => {
-    const idx = chartCrosshair?.idx ?? (activeData.length - 1);
+    // chartCrosshair.idx is set by Dashboard's handleCrosshairMove (nearest index)
+    const idx = chartCrosshair?.idx ?? (chartDataPoints.length - 1);
     setCommentChartIdx(idx);
     setCommentText("");
     setCommentSentiment("Neutral");
@@ -272,9 +280,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const submitComment = () => {
     if (!commentText.trim() || commentChartIdx === null) return;
-    const price = typeof activeData[commentChartIdx] === "object"
-      ? (activeData[commentChartIdx] as any).value
-      : activeData[commentChartIdx];
+    const dp = chartDataPoints[commentChartIdx];
+    const price = dp ? dp.value : chartCrosshair?.price ?? 0;
     setUserComments(prev => [{
       id: Date.now().toString(),
       assetId: selectedAssetId,
