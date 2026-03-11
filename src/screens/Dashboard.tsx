@@ -1,7 +1,7 @@
 // @ts-nocheck
 import React, { useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { TrendingUp, TrendingDown, ChevronDown, Brain, Edit3, ChevronRight, Globe } from "lucide-react";
+import { TrendingUp, TrendingDown, ChevronDown, Brain, Edit3 } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { MarketPulseChart } from "../ChartComponent";
 
@@ -10,33 +10,37 @@ export function Dashboard() {
     activeAsset, displayPrice, timeframeChange,
     selectedAssetId, timeframe, setTimeframe,
     chartDataPoints, chartMarkers,
-    selectedPoint, detailedPoint,
     chartCrosshair, setChartCrosshair,
     showNewsBubbles, setShowNewsBubbles,
     showAIConsensus, setShowAIConsensus,
-    activeTranslations, activeUserComments, allAssetUserComments,
+    allAssetUserComments,
     handlePointClick, openCommentSheet,
-    showMyComments, setShowMyComments,
+    setShowMyComments,
     isAnalyzing, aiAnalysis, generateAIAnalysis,
-    setIsMenuOpen, setActiveTab, setSelectedAssetId,
+    setIsMenuOpen,
     isDataLoading,
     language, t,
   } = useApp();
 
+  // Pass crosshair data up from TradingView
   const handleCrosshairMove = useCallback((param: any) => {
     if (!param?.point || !param?.time) {
       setChartCrosshair(null);
       return;
     }
-    setChartCrosshair({
-      time: param.time,
-      price: param.seriesData?.values?.().next()?.value?.value ?? 0,
-      point: param.point,
-    });
+    // Get price from series data
+    let price = 0;
+    try {
+      const entries = param.seriesData?.entries?.();
+      if (entries) {
+        const first = entries.next();
+        if (!first.done) price = first.value[1]?.value ?? 0;
+      }
+    } catch {}
+    setChartCrosshair({ time: param.time, price, point: param.point });
   }, [setChartCrosshair]);
 
   const handleMarkerClick = useCallback((marker: any) => {
-    if (marker?.type === "comment") return;
     handlePointClick(marker);
   }, [handlePointClick]);
 
@@ -52,39 +56,41 @@ export function Dashboard() {
     >
       {/* ── Main Chart Card ── */}
       <div className="px-4 mt-2">
-        <div className="bg-black/20 backdrop-blur-xl rounded-[32px] p-6 relative overflow-hidden border border-white/[0.04] shadow-lg">
+        <div className="bg-black/20 backdrop-blur-xl rounded-[32px] overflow-hidden border border-white/[0.04] shadow-lg">
 
           {/* Card header */}
-          <div className="flex justify-between items-start">
-            <div>
-              <div className="text-[#7A7B8D] text-[11px] font-semibold tracking-[0.15em] mb-1.5">{activeAsset.symbol}</div>
-              <div className="text-white text-[38px] font-bold tracking-tight leading-none mb-4">
-                ${displayPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </div>
-              <div className="flex items-center gap-3">
-                <div className={`px-2 py-1 rounded-lg flex items-center gap-1 font-bold text-[11px] ${isUp ? "bg-gradient-to-r from-[#00FFFF] to-[#39FF14] text-black" : "bg-[#E50000] text-black"}`}>
-                  {isUp ? <TrendingUp className="w-3 h-3" strokeWidth={3} /> : <TrendingDown className="w-3 h-3" strokeWidth={3} />}
-                  {timeframeChange.str}
+          <div className="px-6 pt-6 pb-0">
+            <div className="flex justify-between items-start">
+              <div>
+                <div className="text-[#7A7B8D] text-[11px] font-semibold tracking-[0.15em] mb-1.5">{activeAsset.symbol}</div>
+                <div className="text-white text-[38px] font-bold tracking-tight leading-none mb-4">
+                  ${displayPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#39FF14] animate-pulse" />
-                  <div className="text-[#7A7B8D] text-[10px] font-bold tracking-[0.15em] uppercase">{t.liveMarket}</div>
+                <div className="flex items-center gap-3">
+                  <div className={`px-2 py-1 rounded-lg flex items-center gap-1 font-bold text-[11px] ${isUp ? "bg-gradient-to-r from-[#00FFFF] to-[#39FF14] text-black" : "bg-[#E50000] text-black"}`}>
+                    {isUp ? <TrendingUp className="w-3 h-3" strokeWidth={3} /> : <TrendingDown className="w-3 h-3" strokeWidth={3} />}
+                    {timeframeChange.str}
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#39FF14] animate-pulse" />
+                    <div className="text-[#7A7B8D] text-[10px] font-bold tracking-[0.15em] uppercase">{t.liveMarket}</div>
+                  </div>
+                  {isDataLoading && (
+                    <div className="w-3 h-3 border border-[#00FFFF]/50 border-t-transparent rounded-full animate-spin" />
+                  )}
                 </div>
-                {isDataLoading && (
-                  <div className="w-3 h-3 border border-[#00FFFF]/50 border-t-transparent rounded-full animate-spin" />
-                )}
               </div>
-            </div>
-            <div
-              onClick={() => setIsMenuOpen(true)}
-              className="w-8 h-8 rounded-full bg-white/5 border border-white/[0.05] flex items-center justify-center hover:bg-white/10 transition-colors cursor-pointer"
-            >
-              <ChevronDown className="w-4 h-4 text-white/60" strokeWidth={2} />
+              <div
+                onClick={() => setIsMenuOpen(true)}
+                className="w-8 h-8 rounded-full bg-white/5 border border-white/[0.05] flex items-center justify-center hover:bg-white/10 transition-colors cursor-pointer mt-1"
+              >
+                <ChevronDown className="w-4 h-4 text-white/60" strokeWidth={2} />
+              </div>
             </div>
           </div>
 
-          {/* ── TradingView Chart ── */}
-          <div className="mt-8 relative h-[240px] w-full">
+          {/* ── TradingView Chart — edge-to-edge, no padding ── */}
+          <div className="mt-6 relative" style={{ height: 220 }}>
             <MarketPulseChart
               key={`${selectedAssetId}-${timeframe}`}
               data={chartDataPoints}
@@ -93,18 +99,18 @@ export function Dashboard() {
               onMarkerClick={handleMarkerClick}
             />
 
-            {/* Crosshair overlay: ADD COMMENT button */}
+            {/* ADD COMMENT button floats above chart when crosshair active */}
             <AnimatePresence>
               {chartCrosshair && (
                 <motion.div
-                  initial={{ opacity: 0, y: 4, scale: 0.95 }}
+                  initial={{ opacity: 0, y: 6, scale: 0.9 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="absolute bottom-2 left-1/2 -translate-x-1/2 z-30"
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  className="absolute bottom-3 left-1/2 -translate-x-1/2 z-30 pointer-events-auto"
                 >
                   <button
                     onClick={(e) => { e.stopPropagation(); openCommentSheet(); }}
-                    className="flex items-center gap-2 bg-gradient-to-r from-[#00FFFF] to-[#39FF14] text-black font-black text-[11px] uppercase tracking-wider px-5 py-2.5 rounded-2xl shadow-[0_0_24px_rgba(0,255,255,0.4)] active:scale-95 transition-transform"
+                    className="flex items-center gap-2 bg-gradient-to-r from-[#00FFFF] to-[#39FF14] text-black font-black text-[11px] uppercase tracking-wider px-5 py-2.5 rounded-2xl shadow-[0_0_28px_rgba(0,255,255,0.45)] active:scale-95 transition-transform whitespace-nowrap"
                   >
                     <Edit3 className="w-3.5 h-3.5" strokeWidth={3} />
                     {language === "Turkish" ? "Yorum Yaz" : "Add Comment"}
@@ -113,26 +119,26 @@ export function Dashboard() {
               )}
             </AnimatePresence>
           </div>
+
+          {/* Timeframe tabs — inside card, bottom strip */}
+          <div className="flex items-center gap-1 px-5 py-4">
+            {["1H", "1D", "1W", "1M", "1Y", "ALL"].map(tf => (
+              <button
+                key={tf}
+                onClick={() => setTimeframe(tf)}
+                className={`flex-1 py-1.5 rounded-lg text-[12px] font-bold transition-all text-center ${timeframe === tf ? "bg-white/10 text-white" : "text-[#7A7B8D] hover:text-white/70"}`}
+              >
+                {tf}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* ── Controls ── */}
-      <div className="px-6 mt-6 flex flex-col gap-4 w-full">
+      {/* ── Controls below card ── */}
+      <div className="px-6 mt-4 flex flex-col gap-3 w-full">
 
-        {/* Timeframe buttons */}
-        <div className="flex items-center justify-between w-full">
-          {["1H", "1D", "1W", "1M", "1Y", "ALL"].map(tf => (
-            <button
-              key={tf}
-              onClick={() => setTimeframe(tf)}
-              className={`flex-1 mx-1 py-1.5 rounded-lg text-[12px] font-bold transition-all text-center ${timeframe === tf ? "bg-white text-black" : "text-[#7A7B8D] hover:text-white bg-white/5"}`}
-            >
-              {tf}
-            </button>
-          ))}
-        </div>
-
-        {/* Toggle buttons */}
+        {/* Toggle row */}
         <div className="flex justify-center gap-2">
           <button
             onClick={() => setShowNewsBubbles(!showNewsBubbles)}
@@ -155,7 +161,7 @@ export function Dashboard() {
         </div>
 
         {/* AI Analysis */}
-        <div className="mt-4 bg-black/30 backdrop-blur-xl rounded-2xl p-4 border border-white/10">
+        <div className="bg-black/30 backdrop-blur-xl rounded-2xl p-4 border border-white/10">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Brain className="w-4 h-4 text-white/40" />

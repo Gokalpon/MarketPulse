@@ -10,9 +10,8 @@ export const MarketPulseChart = ({
   onVisibleMarkersChange,
   lineColor = "#00FFFF",
   backgroundColor = "transparent",
-  textColor = "#5A5B6D",
-  areaTopColor = "rgba(0, 255, 255, 0.22)",
-  areaBottomColor = "rgba(57, 255, 20, 0.03)",
+  areaTopColor = "rgba(0, 255, 255, 0.18)",
+  areaBottomColor = "rgba(57, 255, 20, 0.02)",
 }) => {
   const containerRef  = useRef(null);
   const chartRef      = useRef(null);
@@ -31,7 +30,6 @@ export const MarketPulseChart = ({
         .sort((a, b) => (b.importance || 5) - (a.importance || 5))
         .slice(0, 2)
         .sort((a, b) => a.time - b.time);
-
       const mData = top2.map(m => ({
         time: m.time,
         position: m.sentiment === "Negative" ? "belowBar" : "aboveBar",
@@ -40,7 +38,6 @@ export const MarketPulseChart = ({
         text: "",
         size: 2,
       }));
-
       try {
         if (markersPlugin.current && typeof markersPlugin.current.setData === "function") {
           markersPlugin.current.setData(mData);
@@ -51,7 +48,6 @@ export const MarketPulseChart = ({
       } catch {
         try { seriesRef.current.setMarkers(mData); } catch {}
       }
-
       if (onVisibleMarkersChange) onVisibleMarkersChange(top2);
     } catch {}
   }, [onVisibleMarkersChange]);
@@ -67,36 +63,46 @@ export const MarketPulseChart = ({
 
     const chart = createChart(el, {
       layout: {
-        background: { type: ColorType.Solid, color: backgroundColor },
-        textColor,
+        background: { type: ColorType.Solid, color: "transparent" },
+        textColor: "rgba(0,0,0,0)",
         fontSize: 10,
-        fontFamily: "'SF Mono', 'Courier New', monospace",
+        attributionLogo: false,
       },
       grid: {
-        vertLines: { color: "rgba(255,255,255,0.02)" },
-        horzLines: { color: "rgba(255,255,255,0.02)" },
+        vertLines: { visible: false },
+        horzLines: { visible: false },
       },
       width:  el.clientWidth  || 300,
       height: el.clientHeight || 220,
       timeScale: {
-        timeVisible: true,
-        secondsVisible: false,
+        visible: false,
         borderVisible: false,
-        rightOffset: 3,
+        rightOffset: 1,
         barSpacing: 6,
       },
       rightPriceScale: {
+        visible: false,
         borderVisible: false,
-        scaleMargins: { top: 0.08, bottom: 0.08 },
-        textColor: "rgba(90,91,109,0.9)",
+        scaleMargins: { top: 0.08, bottom: 0.04 },
       },
+      leftPriceScale:  { visible: false },
       crosshair: {
         mode: 1,
-        vertLine: { color: "rgba(0,255,255,0.3)", style: 1, width: 1, labelBackgroundColor: "#00FFFF" },
-        horzLine: { color: "rgba(0,255,255,0.3)", style: 1, width: 1, labelBackgroundColor: "#00FFFF" },
+        vertLine: {
+          color: "rgba(255,255,255,0.2)",
+          style: 1,
+          width: 1,
+          labelVisible: false,
+        },
+        horzLine: {
+          color: "rgba(0,255,255,0.15)",
+          style: 1,
+          width: 1,
+          labelVisible: false,
+        },
       },
       handleScroll: { pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false },
-      handleScale:  { mouseWheel: true, pinch: true, axisPressedMouseMove: { time: true, price: true } },
+      handleScale:  { mouseWheel: true, pinch: true, axisPressedMouseMove: false },
     });
     chartRef.current = chart;
 
@@ -105,11 +111,13 @@ export const MarketPulseChart = ({
       topColor:    areaTopColor,
       bottomColor: areaBottomColor,
       lineWidth: 2,
-      priceLineVisible: true,
-      priceLineColor: "rgba(0,255,255,0.4)",
-      priceLineWidth: 1,
-      lastValueVisible: true,
-      lastPriceAnimation: 1,
+      priceLineVisible:  false,
+      lastValueVisible:  false,
+      crosshairMarkerVisible:         true,
+      crosshairMarkerRadius:          5,
+      crosshairMarkerBorderColor:     "#00FFFF",
+      crosshairMarkerBackgroundColor: "#050507",
+      crosshairMarkerBorderWidth:     2,
     });
     seriesRef.current = series;
 
@@ -163,13 +171,11 @@ export const MarketPulseChart = ({
     const series = seriesRef.current;
     if (!series) return;
     if (!data?.length) { try { series.setData([]); } catch {} return; }
-
     const cleaned = data
       .map(d => ({ time: Number(d.time ?? d), value: Number(d.value ?? d) }))
       .filter(d => d.time > 0 && d.value > 0 && !isNaN(d.time) && !isNaN(d.value))
       .sort((a, b) => a.time - b.time)
       .filter((d, i, arr) => i === 0 || d.time !== arr[i - 1].time);
-
     if (!cleaned.length) return;
     try {
       series.setData(cleaned);
@@ -187,7 +193,7 @@ export const MarketPulseChart = ({
   }, [comments, schedule]);
 
   return (
-    <div ref={containerRef} style={{ position: "relative", width: "100%", height: "100%", minHeight: 200 }}>
+    <div ref={containerRef} style={{ position: "relative", width: "100%", height: "100%", minHeight: 200, overflow: "hidden" }}>
       {(!data || data.length === 0) && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="text-center">
@@ -196,6 +202,7 @@ export const MarketPulseChart = ({
           </div>
         </div>
       )}
+      <style>{`a[href*="tradingview"]{display:none!important}`}</style>
     </div>
   );
 };
