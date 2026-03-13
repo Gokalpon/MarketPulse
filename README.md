@@ -1,59 +1,73 @@
-# Market Pulse
+# Welcome to your Lovable project
 
-Real-time market insights, AI-powered trend analysis, and community-driven sentiment for market professionals.
+## Project info
 
-## Features
+**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
 
-- **Live Market Dashboard** — Interactive charts with AI consensus bubbles and news alerts
-- **AI Market Pulse** — Gemini-powered real-time analysis for any asset
-- **Community** — Trending comments, win rates, and social trading insights
-- **Watchlist** — Personalized asset tracking with list/grid views
-- **Multi-language** — English, Turkish, and 6 more languages
-- **Mobile-first** — iOS-style glassmorphic design
+## How can I edit this code?
 
-## Setup
+There are several ways of editing your application.
 
-**Prerequisites:** Node.js 20+
+**Use Lovable**
 
-```bash
-npm install
-```
+Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
 
-Create a `.env` file in the project root:
+Changes made via Lovable will be committed automatically to this repo.
 
-```
-GEMINI_API_KEY=your_gemini_api_key_here
-```
+**Use your preferred IDE**
 
-Run the development server:
+If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
 
-```bash
+The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+
+Follow these steps:
+
+```sh
+# Step 1: Clone the repository using the project's Git URL.
+git clone <YOUR_GIT_URL>
+
+# Step 2: Navigate to the project directory.
+cd <YOUR_PROJECT_NAME>
+
+# Step 3: Install the necessary dependencies.
+npm i
+
+# Step 4: Start the development server with auto-reloading and an instant preview.
 npm run dev
 ```
 
-## Deploy
+**Edit a file directly in GitHub**
 
-### Vercel
+- Navigate to the desired file(s).
+- Click the "Edit" button (pencil icon) at the top right of the file view.
+- Make your changes and commit the changes.
 
-1. Push this repo to GitHub
-2. Import on [vercel.com](https://vercel.com) → Select the repo
-3. Framework Preset: **Vite**
-4. Add environment variable: `GEMINI_API_KEY`
-5. Deploy
+**Use GitHub Codespaces**
 
-### Cloudflare Pages
+- Navigate to the main page of your repository.
+- Click on the "Code" button (green button) near the top right.
+- Select the "Codespaces" tab.
+- Click on "New codespace" to launch a new Codespace environment.
+- Edit files directly within the Codespace and commit and push your changes once you're done.
 
-1. Connect repo on Cloudflare Dashboard → Workers & Pages
-2. Build command: `npm run build`
-3. Output directory: `dist`
-4. Add environment variable: `GEMINI_API_KEY`
-5. Deploy
+## What technologies are used for this project?
 
-## Tech Stack
+This project is built with:
 
-- React 19 + TypeScript
-- Vite 6
-- Tailwind CSS 4
-- Motion (Framer Motion)
-- Gemini API (@google/genai)
-- Lucide React Icons
+- Vite
+- TypeScript
+- React
+- shadcn-ui
+- Tailwind CSS
+
+## How can I deploy this project?
+
+Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+
+## Can I connect a custom domain to my Lovable project?
+
+Yes, you can!
+
+To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+
+Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)

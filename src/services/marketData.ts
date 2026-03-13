@@ -8,7 +8,7 @@ const timeframeToInterval = {
   "1W": "1h",
   "1M": "4h",
   "1Y": "1day",
-  "ALL": "1week"
+  "ALL": "1month"
 };
 
 const timeframeToOutputSize = {
@@ -17,7 +17,7 @@ const timeframeToOutputSize = {
   "1W": "50",
   "1M": "60",
   "1Y": "365",
-  "ALL": "500"
+  "ALL": "60"
 };
 
 export async function fetchMarketData(symbol: string, timeframe: string) {

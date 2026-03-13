@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd \"C:\\\\Users\\\\user\\\\Desktop\\\\Antigravity\\\\MarketPulse\" && npm install 2>&1 | tail -5)",
+      "Bash(cd \"C:\\\\Users\\\\user\\\\Desktop\\\\Antigravity\\\\MarketPulse\" && npm run build 2>&1 | tail -2022)",
+      "Bash(cd \"C:\\\\Users\\\\user\\\\Desktop\\\\Antigravity\\\\MarketPulse\" && npm run dev 2>&1)",
+      "Bash(cd \"C:\\\\Users\\\\user\\\\Desktop\\\\Antigravity\\\\MarketPulse\" && npm run build 2>&1 | grep -E \"error|Error|✓ built\")",
+      "Bash(curl -s \"https://api.twelvedata.com/price?symbol=BTC/USD&apikey=71b97e399d594125a2f9ffb55c8a7b5e\")",
+      "Bash(cd \"C:\\\\Users\\\\user\\\\Desktop\\\\Antigravity\\\\MarketPulse\" && npm run build 2>&1 | grep -E \"error|✓ built\")"
+    ]
+  }
+}
