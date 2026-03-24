@@ -647,8 +647,22 @@ export default function MarketPulseApp({ containerHeight }: { containerHeight?: 
         </Suspense>
 
         {/* Bottom Navigation */}
-        <nav className="absolute bottom-5 inset-x-5 z-[140]">
-          <div className="relative flex items-stretch bg-[#0A0C12]/80 backdrop-blur-[60px] rounded-[22px] overflow-hidden border border-white/[0.07] shadow-[0_20px_60px_rgba(0,0,0,0.8)]">
+        <nav className="absolute bottom-5 inset-x-5 z-[140] group">
+          {/* Animated light sweep background */}
+          <div className="absolute inset-0 rounded-[22px] opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{
+            background: "linear-gradient(90deg, transparent, rgba(160, 255, 235, 0.08), transparent)",
+            animation: "nav-light 4s ease-in-out infinite",
+            pointerEvents: "none"
+          }} />
+
+          {/* Glowing aura effect */}
+          <div className="absolute -inset-1 rounded-[24px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-xl" style={{
+            background: "radial-gradient(ellipse 150% 100% at 50% 120%, rgba(160, 255, 235, 0.15), rgba(160, 255, 235, 0.05), transparent)",
+            animation: "nav-glow 3s ease-in-out infinite",
+            pointerEvents: "none"
+          }} />
+
+          <div className="relative flex items-stretch bg-[#0A0C12]/80 backdrop-blur-[60px] rounded-[22px] overflow-hidden border border-white/[0.07] shadow-[0_2px_8px_rgba(160,255,235,0.1),_0_20px_60px_rgba(0,0,0,0.8),_inset_0_1px_0_rgba(255,255,255,0.05)]">
             {[
               { id: "dashboard", icon: null, isLogo: true, label: language === "Turkish" ? "Ana Sayfa" : "Home" },
               { id: "watchlist", icon: List, isLogo: false, label: language === "Turkish" ? "İzleme" : "Watchlist" },

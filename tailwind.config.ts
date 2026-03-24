@@ -73,10 +73,39 @@ export default {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        "nav-glow": {
+          "0%": {
+            "box-shadow": "0 0 0 0 rgba(160, 255, 235, 0.4), 0 20px 60px rgba(0, 0, 0, 0.8)",
+            opacity: "1"
+          },
+          "50%": {
+            "box-shadow": "0 0 30px 15px rgba(160, 255, 235, 0.2), 0 20px 60px rgba(0, 0, 0, 0.8)",
+            opacity: "1"
+          },
+          "100%": {
+            "box-shadow": "0 0 0 0 rgba(160, 255, 235, 0), 0 20px 60px rgba(0, 0, 0, 0.8)",
+            opacity: "1"
+          },
+        },
+        "nav-light": {
+          "0%": {
+            "background": "linear-gradient(90deg, transparent, transparent, transparent)",
+            opacity: "0"
+          },
+          "50%": {
+            opacity: "1"
+          },
+          "100%": {
+            "background": "linear-gradient(90deg, transparent, rgba(160, 255, 235, 0.1), transparent)",
+            opacity: "0"
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "nav-glow": "nav-glow 3s ease-in-out infinite",
+        "nav-light": "nav-light 4s ease-in-out infinite",
       },
     },
   },
