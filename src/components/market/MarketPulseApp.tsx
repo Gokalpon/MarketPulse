@@ -647,16 +647,16 @@ export default function MarketPulseApp({ containerHeight }: { containerHeight?: 
         </Suspense>
 
         {/* Bottom Navigation */}
-        <nav className="absolute bottom-5 inset-x-5 z-[140] group">
+        <nav className="absolute bottom-5 inset-x-5 z-[140]">
           {/* Animated light sweep background */}
-          <div className="absolute inset-0 rounded-[22px] opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{
+          <div className="absolute inset-0 rounded-[22px]" style={{
             background: "linear-gradient(90deg, transparent, rgba(160, 255, 235, 0.08), transparent)",
             animation: "nav-light 4s ease-in-out infinite",
             pointerEvents: "none"
           }} />
 
           {/* Glowing aura effect */}
-          <div className="absolute -inset-1 rounded-[24px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-xl" style={{
+          <div className="absolute -inset-1 rounded-[24px] blur-xl" style={{
             background: "radial-gradient(ellipse 150% 100% at 50% 120%, rgba(160, 255, 235, 0.15), rgba(160, 255, 235, 0.05), transparent)",
             animation: "nav-glow 3s ease-in-out infinite",
             pointerEvents: "none"
