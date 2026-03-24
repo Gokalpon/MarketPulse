@@ -33,6 +33,11 @@ export interface DetailedPointData {
   comments: UserComment[];
   sentiment: "Positive" | "Negative" | "Neutral";
   count: number;
+  avgIdx?: number;
+  avgPrice?: number;
+  translation?: string;
+  type?: string;
+  newsUrl?: string;
 }
 
 // ──── COMMUNITY POST ────
