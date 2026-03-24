@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s http://localhost:8080)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(taskkill /F /IM node.exe)",
+      "Bash(netstat -ano)",
+      "Bash(taskkill /PID 19092 /F)",
+      "Bash(wmic process:*)",
+      "Bash(taskkill.exe /PID 19092 /F)",
+      "Bash(taskkill /PID 17460 /F)",
+      "Bash(npm run:*)",
+      "Bash(curl -s http://localhost:8081)",
+      "Bash(taskkill /PID 11520 /F)",
+      "Bash(kill -9 11520)",
+      "Bash(pkill -9 node)",
+      "Bash(cmd /c 'taskkill /F /IM node.exe')",
+      "Bash(cmd.exe /c \"taskkill /F /IM node.exe 2>&1\")",
+      "Bash(cmd.exe /c \"taskkill /F /IM node.exe\")",
+      "Bash(/c/Windows/System32/taskkill.exe /F /PID 8820 /PID 11520)",
+      "Bash(powershell.exe -Command 'Stop-Process -Id 8820, 11520 -Force')",
+      "Skill(update-config)",
+      "Skill(update-config:*)",
+      "Bash(find /c/Users/user/.claude -name settings*.json)",
+      "Bash(find /c/Users/user/.claude -name *.json)",
+      "Bash(taskkill /PID 19732 /F)",
+      "Bash(powershell.exe -Command \"Stop-Process -Id 19732 -Force\")",
+      "Bash(npx tsc:*)"
+    ]
+  }
+}
