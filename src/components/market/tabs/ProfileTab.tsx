@@ -7,14 +7,15 @@ import {
 } from "lucide-react";
 import { ASSETS, APP_ASSETS } from "@/data/assets";
 import { NotifToggle } from "@/components/market/NotifToggle";
+import { TranslationStrings, UserComment } from "@/types";
 
 interface ProfileTabProps {
   language: string;
-  t: any;
+  t: TranslationStrings;
   profilePage: string | null;
   setProfilePage: (p: string | null) => void;
   profilePicture: string | null;
-  userComments: any[];
+  userComments: UserComment[];
   deleteComment: (id: string) => void;
   watchlistAssets: string[];
   pinnedAssets: string[];
@@ -147,7 +148,7 @@ export function ProfileTab({
             ) : (
               <>
                 <div className="space-y-3">
-                  {userComments.map((uc: any) => (
+                  {userComments.map((uc: UserComment) => (
                     <div key={uc.id} className="mp-glass-card rounded-2xl p-4">
                       <div className="flex justify-between items-start mb-2">
                         <div className="flex items-center gap-2">

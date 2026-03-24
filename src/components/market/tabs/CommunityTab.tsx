@@ -3,10 +3,11 @@ import { motion, AnimatePresence } from "motion/react";
 import { ChevronDown, Heart, MessageCircle, Share2 } from "lucide-react";
 import { ASSETS, COMMUNITY_POSTS } from "@/data/assets";
 import { Sparkline } from "@/components/market/Sparkline";
+import { TranslationStrings } from "@/types";
 
 interface CommunityTabProps {
   language: string;
-  t: any;
+  t: TranslationStrings;
   communityTab: string;
   setCommunityTab: (v: string) => void;
   trendingExpanded: boolean;

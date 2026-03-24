@@ -1,16 +1,17 @@
 import React from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ExternalLink, X, Brain, Trash2, Reply, Globe, Heart, Send } from "lucide-react";
+import { DetailedPointData, UserComment, TranslationStrings } from "@/types";
 
 interface DetailedPointSheetProps {
-  detailedPoint: any;
-  setDetailedPoint: (p: any) => void;
-  setSelectedPoint: (p: any) => void;
+  detailedPoint: DetailedPointData | null;
+  setDetailedPoint: (p: DetailedPointData | null) => void;
+  setSelectedPoint: (p: DetailedPointData | null) => void;
   language: string;
-  t: any;
+  t: TranslationStrings;
   sentimentFilter: string;
   setSentimentFilter: (s: string) => void;
-  activeUserComments: any[];
+  activeUserComments: UserComment[];
   deleteComment: (id: string) => void;
 }
 
@@ -24,9 +25,9 @@ export function DetailedPointSheet({
       {detailedPoint && (() => {
         const allComments = detailedPoint.comments || [];
         const total = allComments.length;
-        const pos = allComments.filter((c: any) => c.sentiment === "Positive").length;
-        const neg = allComments.filter((c: any) => c.sentiment === "Negative").length;
-        const neu = allComments.filter((c: any) => c.sentiment === "Neutral").length;
+        const pos = allComments.filter((c: UserComment) => c.sentiment === "Positive").length;
+        const neg = allComments.filter((c: UserComment) => c.sentiment === "Negative").length;
+        const neu = allComments.filter((c: UserComment) => c.sentiment === "Neutral").length;
         const posPct = total > 0 ? Math.round((pos / total) * 100) : 0;
         const neuPct = total > 0 ? Math.round((neu / total) * 100) : 0;
         const negPct = total > 0 ? Math.round((neg / total) * 100) : 0;
@@ -184,7 +185,7 @@ export function DetailedPointSheet({
                 </div>
 
                 {/* User's own nearby comments */}
-                {activeUserComments.filter(uc => Math.abs(uc.chartIndex - detailedPoint.idx) <= 2).map((uc: any) => (
+                {activeUserComments.filter(uc => Math.abs(uc.chartIndex - detailedPoint.avgIdx) <= 2).map((uc: UserComment) => (
                   <div key={`own-${uc.id}`} className="flex items-start gap-2.5 p-3 rounded-2xl mb-2"
                     style={{ background: "rgba(100,60,200,0.12)", border: "1px solid rgba(120,80,220,0.2)" }}>
                     <div className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-black text-black flex-shrink-0 mt-0.5"
@@ -209,9 +210,9 @@ export function DetailedPointSheet({
                 {/* Comments list */}
                 <div className="space-y-2.5 mb-28">
                   {(detailedPoint.comments || [])
-                    .filter((c: any) => sentimentFilter === "All" || c.sentiment === sentimentFilter)
+                    .filter((c: UserComment) => sentimentFilter === "All" || c.sentiment === sentimentFilter)
                     .slice(0, 30)
-                    .map((comment: any, i: number) => (
+                    .map((comment: UserComment, i: number) => (
                       <div
                         key={i}
                         className="rounded-[20px] p-4 transition-all duration-200"

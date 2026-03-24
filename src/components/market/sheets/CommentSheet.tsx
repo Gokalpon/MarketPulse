@@ -1,12 +1,13 @@
 import React from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Edit3, Send } from "lucide-react";
+import { Asset } from "@/data/assets";
 
 interface CommentSheetProps {
   showCommentSheet: boolean;
   setShowCommentSheet: (v: boolean) => void;
   language: string;
-  activeAsset: any;
+  activeAsset: Asset;
   commentChartIdx: number | null;
   activeData: number[];
   commentSentiment: string;

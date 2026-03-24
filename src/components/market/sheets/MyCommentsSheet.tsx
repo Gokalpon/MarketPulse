@@ -1,13 +1,15 @@
 import React from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { MessageCircle, X, Trash2 } from "lucide-react";
+import { Asset } from "@/data/assets";
+import { UserComment } from "@/types";
 
 interface MyCommentsSheetProps {
   showMyComments: boolean;
   setShowMyComments: (v: boolean) => void;
   language: string;
-  activeAsset: any;
-  allAssetUserComments: any[];
+  activeAsset: Asset;
+  allAssetUserComments: UserComment[];
   deleteComment: (id: string) => void;
 }
 
@@ -33,7 +35,7 @@ export function MyCommentsSheet({
               <div className="text-center py-10"><MessageCircle className="w-8 h-8 text-white/10 mx-auto mb-2" /><p className="text-[12px] text-[var(--mp-text-secondary)]">{language === "Turkish" ? "Bu varlık için yorum yok." : "No comments for this asset."}</p></div>
             ) : (
               <div className="space-y-3">
-                {allAssetUserComments.map((uc: any) => (
+                {allAssetUserComments.map((uc: UserComment) => (
                   <div key={uc.id} className="mp-glass-card rounded-2xl p-4">
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex items-center gap-2">

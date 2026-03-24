@@ -4,11 +4,13 @@ import {
   TrendingUp, TrendingDown, ChevronDown, ChevronRight, ChevronUp,
   Brain, Edit3, ExternalLink, Wifi, WifiOff, Maximize2, Minimize2,
 } from "lucide-react";
+import { Asset } from "@/data/assets";
+import { TranslationStrings, DetailedPointData, SentimentCluster, ChartCrosshair, UserComment, NewsOrConsensusPoint } from "@/types";
 
 interface DashboardTabProps {
   language: string;
-  t: any;
-  activeAsset: any;
+  t: TranslationStrings;
+  activeAsset: Asset;
   activeData: number[];
   livePrice: number;
   liveChange: string;
@@ -22,20 +24,20 @@ interface DashboardTabProps {
   setShowNewsBubbles: (v: boolean) => void;
   showAIConsensus: boolean;
   setShowAIConsensus: (v: boolean) => void;
-  activeTranslations: any[];
-  selectedPoint: any;
-  setSelectedPoint: (p: any) => void;
-  sentimentClusters: any[];
-  chartCrosshair: { idx: number; price: number; x: number; y: number } | null;
-  setChartCrosshair: (c: any) => void;
+  activeTranslations: NewsOrConsensusPoint[];
+  selectedPoint: DetailedPointData | null;
+  setSelectedPoint: (p: DetailedPointData | null) => void;
+  sentimentClusters: SentimentCluster[];
+  chartCrosshair: ChartCrosshair | null;
+  setChartCrosshair: (c: ChartCrosshair | null) => void;
   handleChartTap: (e: React.MouseEvent<HTMLDivElement>) => void;
   openCommentSheet: () => void;
-  handlePointClick: (point: any) => void;
+  handlePointClick: (point: SentimentCluster) => void;
   isAnalyzing: boolean;
   aiAnalysis: string | null;
   generateAIAnalysis: () => void;
   setShowMyComments: (v: boolean) => void;
-  activeUserComments: any[];
+  activeUserComments: UserComment[];
   setIsMenuOpen: (v: boolean) => void;
 }
 
@@ -137,7 +139,7 @@ export function DashboardTab({
               )}
 
               {/* Overlay markers */}
-              {(showNewsBubbles || showAIConsensus) && activeTranslations.map((point: any) => {
+              {(showNewsBubbles || showAIConsensus) && activeTranslations.map((point: NewsOrConsensusPoint) => {
                 const isSelected = selectedPoint?.idx === point.idx;
                 const safePointIdx = Math.min(point.idx, activeData.length - 1);
                 const xPercent = getX(safePointIdx);

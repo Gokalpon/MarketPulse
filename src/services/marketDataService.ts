@@ -1,5 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
 
+interface CacheEntry {
+  data: unknown;
+  timestamp: number;
+}
+
 // TwelveData symbol mapping for our assets
 const SYMBOL_MAP: Record<string, string> = {
   BTC: "BTC/USD",
@@ -42,14 +47,14 @@ const INTERVAL_MAP: Record<string, { interval: string; outputsize: number }> = {
 };
 
 // Cache to avoid excessive API calls
-const cache = new Map<string, { data: any; timestamp: number }>();
+const cache = new Map<string, CacheEntry>();
 const CACHE_DURATION = 60_000; // 1 minute for price, 5 min for time series
 
 function getCacheKey(action: string, symbol: string, extra?: string): string {
   return `${action}:${symbol}:${extra || ""}`;
 }
 
-function getCached(key: string, duration: number = CACHE_DURATION): any | null {
+function getCached(key: string, duration: number = CACHE_DURATION): unknown {
   const entry = cache.get(key);
   if (entry && Date.now() - entry.timestamp < duration) {
     return entry.data;
@@ -57,7 +62,7 @@ function getCached(key: string, duration: number = CACHE_DURATION): any | null {
   return null;
 }
 
-function setCache(key: string, data: any): void {
+function setCache(key: string, data: unknown): void {
   cache.set(key, { data, timestamp: Date.now() });
   // Limit cache size
   if (cache.size > 200) {
@@ -101,8 +106,8 @@ export async function fetchTimeSeries(
     }
 
     // TwelveData returns newest first, reverse for chart display
-    const prices: number[] = data.values
-      .map((v: any) => parseFloat(v.close))
+    const prices: number[] = (data.values as Array<{ close: string }>)
+      .map((v) => parseFloat(v.close))
       .reverse();
 
     setCache(cacheKey, prices);

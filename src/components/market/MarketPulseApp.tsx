@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef, Suspense } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Activity, Search, Globe, TrendingUp, TrendingDown, ChevronRight, ChevronDown,
@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { ASSETS, APP_ASSETS, COMMUNITY_POSTS, getMockTranslations, getAssetData } from "@/data/assets";
 import { TRANSLATIONS } from "@/data/translations";
+import { UserComment, DetailedPointData, ChartCrosshair, SentimentCluster, TranslationStrings } from "@/types";
 import { Sparkline } from "@/components/market/Sparkline";
 import { NotifToggle } from "@/components/market/NotifToggle";
 import { SplashScreen } from "@/components/market/SplashScreen";
@@ -16,9 +17,10 @@ import { useMarketData } from "@/hooks/useMarketData";
 import { DashboardTab } from "@/components/market/tabs/DashboardTab";
 import { CommunityTab } from "@/components/market/tabs/CommunityTab";
 import { ProfileTab } from "@/components/market/tabs/ProfileTab";
-import { CommentSheet } from "@/components/market/sheets/CommentSheet";
-import { MyCommentsSheet } from "@/components/market/sheets/MyCommentsSheet";
-import { DetailedPointSheet } from "@/components/market/sheets/DetailedPointSheet";
+// Lazy load sheets for better performance
+const CommentSheet = React.lazy(() => import("@/components/market/sheets/CommentSheet").then(m => ({ default: m.CommentSheet })));
+const MyCommentsSheet = React.lazy(() => import("@/components/market/sheets/MyCommentsSheet").then(m => ({ default: m.MyCommentsSheet })));
+const DetailedPointSheet = React.lazy(() => import("@/components/market/sheets/DetailedPointSheet").then(m => ({ default: m.DetailedPointSheet })));
 
 export default function MarketPulseApp({ containerHeight }: { containerHeight?: number } = {}) {
   const [showSplash, setShowSplash] = useState(true);
@@ -28,8 +30,8 @@ export default function MarketPulseApp({ containerHeight }: { containerHeight?: 
 
   const [activeTab, setActiveTab] = useState("dashboard");
   const [selectedAssetId, setSelectedAssetId] = useState("BTC");
-  const [selectedPoint, setSelectedPoint] = useState<any>(null);
-  const [detailedPoint, setDetailedPoint] = useState<any>(null);
+  const [selectedPoint, setSelectedPoint] = useState<DetailedPointData | null>(null);
+  const [detailedPoint, setDetailedPoint] = useState<DetailedPointData | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
@@ -101,14 +103,14 @@ export default function MarketPulseApp({ containerHeight }: { containerHeight?: 
   const [chartExpanded, setChartExpanded] = useState(false);
 
   // Comment system
-  const [userComments, setUserComments] = useState<any[]>(() => {
+  const [userComments, setUserComments] = useState<UserComment[]>(() => {
     try { const s = localStorage.getItem("userComments"); return s ? JSON.parse(s) : []; } catch { return []; }
   });
   const [showCommentSheet, setShowCommentSheet] = useState(false);
   const [commentChartIdx, setCommentChartIdx] = useState<number | null>(null);
   const [commentText, setCommentText] = useState("");
   const [commentSentiment, setCommentSentiment] = useState("Neutral");
-  const [chartCrosshair, setChartCrosshair] = useState<{ idx: number; price: number; x: number; y: number } | null>(null);
+  const [chartCrosshair, setChartCrosshair] = useState<ChartCrosshair | null>(null);
   const [showMyComments, setShowMyComments] = useState(false);
 
   useEffect(() => { localStorage.setItem("userComments", JSON.stringify(userComments)); }, [userComments]);
@@ -228,11 +230,11 @@ export default function MarketPulseApp({ containerHeight }: { containerHeight?: 
     setUserComments((prev) => prev.filter((c) => c.id !== id));
   };
 
-  const handlePointClick = (point: any) => {
-    if (selectedPoint?.idx === point.idx) {
-      setDetailedPoint(point);
+  const handlePointClick = (point: SentimentCluster) => {
+    if (selectedPoint?.avgIdx === point.avgIdx) {
+      setDetailedPoint(point as unknown as DetailedPointData);
     } else {
-      setSelectedPoint(point);
+      setSelectedPoint(point as unknown as DetailedPointData);
       setSentimentFilter("All");
     }
   };
@@ -603,40 +605,46 @@ export default function MarketPulseApp({ containerHeight }: { containerHeight?: 
         </main>
 
         {/* Sheets */}
-        <CommentSheet
-          showCommentSheet={showCommentSheet}
-          setShowCommentSheet={setShowCommentSheet}
-          language={language}
-          activeAsset={activeAsset}
-          commentChartIdx={commentChartIdx}
-          activeData={activeData}
-          commentSentiment={commentSentiment}
-          setCommentSentiment={setCommentSentiment}
-          commentText={commentText}
-          setCommentText={setCommentText}
-          submitComment={submitComment}
-        />
+        <Suspense fallback={null}>
+          <CommentSheet
+            showCommentSheet={showCommentSheet}
+            setShowCommentSheet={setShowCommentSheet}
+            language={language}
+            activeAsset={activeAsset}
+            commentChartIdx={commentChartIdx}
+            activeData={activeData}
+            commentSentiment={commentSentiment}
+            setCommentSentiment={setCommentSentiment}
+            commentText={commentText}
+            setCommentText={setCommentText}
+            submitComment={submitComment}
+          />
+        </Suspense>
 
-        <MyCommentsSheet
-          showMyComments={showMyComments}
-          setShowMyComments={setShowMyComments}
-          language={language}
-          activeAsset={activeAsset}
-          allAssetUserComments={allAssetUserComments}
-          deleteComment={deleteComment}
-        />
+        <Suspense fallback={null}>
+          <MyCommentsSheet
+            showMyComments={showMyComments}
+            setShowMyComments={setShowMyComments}
+            language={language}
+            activeAsset={activeAsset}
+            allAssetUserComments={allAssetUserComments}
+            deleteComment={deleteComment}
+          />
+        </Suspense>
 
-        <DetailedPointSheet
-          detailedPoint={detailedPoint}
-          setDetailedPoint={setDetailedPoint}
-          setSelectedPoint={setSelectedPoint}
-          language={language}
-          t={t}
-          sentimentFilter={sentimentFilter}
-          setSentimentFilter={setSentimentFilter}
-          activeUserComments={activeUserComments}
-          deleteComment={deleteComment}
-        />
+        <Suspense fallback={null}>
+          <DetailedPointSheet
+            detailedPoint={detailedPoint}
+            setDetailedPoint={setDetailedPoint}
+            setSelectedPoint={setSelectedPoint}
+            language={language}
+            t={t}
+            sentimentFilter={sentimentFilter}
+            setSentimentFilter={setSentimentFilter}
+            activeUserComments={activeUserComments}
+            deleteComment={deleteComment}
+          />
+        </Suspense>
 
         {/* Bottom Navigation */}
         <nav className="absolute bottom-5 inset-x-5 z-[140]">
