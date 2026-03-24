@@ -290,7 +290,16 @@ export default function MarketPulseApp({ containerHeight }: { containerHeight?: 
         <div className="absolute inset-0 z-0 pointer-events-none" style={{ backgroundImage: `url(${APP_ASSETS.mainBackground})`, backgroundSize: "cover", backgroundPosition: "center", backgroundRepeat: "no-repeat" }} />
 
         {/* Header */}
-        <header className="absolute top-0 inset-x-0 z-[100] px-6 pt-12 pb-4 bg-black/50 backdrop-blur-[20px]">
+        <header
+          className="absolute top-0 inset-x-0 z-[100] px-6 pt-12 pb-4"
+          style={{
+            background: "rgba(5, 5, 8, 0.55)",
+            backdropFilter: "blur(32px) saturate(160%)",
+            WebkitBackdropFilter: "blur(32px) saturate(160%)",
+            borderBottom: "1px solid rgba(255,255,255,0.05)",
+            boxShadow: "0 1px 0 rgba(0,0,0,0.6), 0 8px 24px rgba(0,0,0,0.35)",
+          }}
+        >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 cursor-pointer group" onClick={() => setIsMenuOpen(true)}>
               <img src={APP_ASSETS.headerLogo} alt="Logo" className="w-10 h-10 object-contain group-hover:scale-105 transition-transform" />
@@ -648,21 +657,31 @@ export default function MarketPulseApp({ containerHeight }: { containerHeight?: 
 
         {/* Bottom Navigation */}
         <nav className="absolute bottom-5 inset-x-5 z-[140]">
-          {/* Animated light sweep background */}
-          <div className="absolute inset-0 rounded-[22px]" style={{
-            background: "linear-gradient(90deg, transparent, rgba(160, 255, 235, 0.08), transparent)",
-            animation: "nav-light 4s ease-in-out infinite",
-            pointerEvents: "none"
-          }} />
-
-          {/* Glowing aura effect */}
-          <div className="absolute -inset-1 rounded-[24px] blur-xl" style={{
-            background: "radial-gradient(ellipse 150% 100% at 50% 120%, rgba(160, 255, 235, 0.15), rgba(160, 255, 235, 0.05), transparent)",
-            animation: "nav-glow 3s ease-in-out infinite",
-            pointerEvents: "none"
-          }} />
-
-          <div className="relative flex items-stretch bg-[#0A0C12]/80 backdrop-blur-[60px] rounded-[22px] overflow-hidden border border-white/[0.07] shadow-[0_2px_8px_rgba(160,255,235,0.1),_0_20px_60px_rgba(0,0,0,0.8),_inset_0_1px_0_rgba(255,255,255,0.05)]">
+          <div
+            className="relative flex items-stretch rounded-[22px] overflow-hidden border border-white/[0.09]"
+            style={{
+              background: "rgba(7, 9, 15, 0.42)",
+              backdropFilter: "blur(40px) saturate(180%)",
+              WebkitBackdropFilter: "blur(40px) saturate(180%)",
+              boxShadow: [
+                "inset 0 1px 0 rgba(255,255,255,0.08)",
+                "inset 0 -1px 0 rgba(0,0,0,0.4)",
+                "0 -6px 24px rgba(0,0,0,0.5)",
+                "0 12px 40px rgba(0,0,0,0.7)",
+              ].join(", "),
+            }}
+          >
+            {/* Surface specular light — soldan sağa süpürülen ışık yansıması */}
+            <div className="absolute inset-0 overflow-hidden rounded-[22px] pointer-events-none">
+              <div
+                className="absolute inset-y-0"
+                style={{
+                  width: "45%",
+                  background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.025) 30%, rgba(255,255,255,0.055) 50%, rgba(255,255,255,0.025) 70%, transparent 100%)",
+                  animation: "nav-sweep 7s ease-in-out infinite",
+                }}
+              />
+            </div>
             {[
               { id: "dashboard", icon: null, isLogo: true, label: language === "Turkish" ? "Ana Sayfa" : "Home" },
               { id: "watchlist", icon: List, isLogo: false, label: language === "Turkish" ? "İzleme" : "Watchlist" },
