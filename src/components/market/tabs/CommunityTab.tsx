@@ -29,11 +29,17 @@ export function CommunityTab({
       <div className="flex gap-4 mb-6 border-b border-white/[0.05] pb-2">
         <button onClick={() => setCommunityTab("community")} className={`text-[13px] font-bold uppercase tracking-wider pb-2 relative ${communityTab === "community" ? "text-foreground" : "text-[var(--mp-text-secondary)]"}`}>
           {t.community}
-          {communityTab === "community" && <div className="absolute bottom-[-9px] left-0 right-0 h-0.5 bg-[var(--mp-cyan)]" />}
+          {communityTab === "community" && (
+            <div className="absolute bottom-[-9px] left-0 right-0 h-0.5 rounded-full"
+              style={{ background: "linear-gradient(90deg, #00FF87, #00E5CC)" }} />
+          )}
         </button>
         <button onClick={() => setCommunityTab("trending")} className={`text-[13px] font-bold uppercase tracking-wider pb-2 relative ${communityTab === "trending" ? "text-foreground" : "text-[var(--mp-text-secondary)]"}`}>
           {t.trending}
-          {communityTab === "trending" && <div className="absolute bottom-[-9px] left-0 right-0 h-0.5 bg-[var(--mp-green)]" />}
+          {communityTab === "trending" && (
+            <div className="absolute bottom-[-9px] left-0 right-0 h-0.5 rounded-full"
+              style={{ background: "linear-gradient(90deg, #00FF87, #00E5CC)" }} />
+          )}
         </button>
       </div>
 
@@ -76,7 +82,12 @@ export function CommunityTab({
                 <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="flex flex-col gap-3 p-3">
                   <div className="flex items-center gap-1 mb-4 overflow-x-auto scrollbar-hide pb-1">
                     {["Daily", "Weekly", "Monthly", "Yearly", "All Time"].map((tf) => (
-                      <button key={tf} onClick={() => setCommentsTimeframe(tf)} className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all whitespace-nowrap ${tf === commentsTimeframe ? "bg-[var(--mp-green)] text-background" : "bg-white/5 text-[var(--mp-text-secondary)] hover:bg-white/10"}`}>
+                      <button key={tf} onClick={() => setCommentsTimeframe(tf)}
+                        className="px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all whitespace-nowrap"
+                        style={tf === commentsTimeframe
+                          ? { background: "linear-gradient(135deg,#00FF87,#00E5CC)", color: "#040D08" }
+                          : { background: "rgba(255,255,255,0.05)", color: "var(--mp-text-secondary)" }
+                        }>
                         {tf === "Daily" ? t.daily : tf === "Weekly" ? t.weekly : tf === "Monthly" ? t.monthly : tf === "Yearly" ? t.yearly : t.allTime}
                       </button>
                     ))}
