@@ -1,8 +1,7 @@
 import React from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ChevronDown, Heart, MessageCircle, Share2 } from "lucide-react";
-import { ASSETS, COMMUNITY_POSTS } from "@/data/assets";
-import { Sparkline } from "@/components/market/Sparkline";
+import { COMMUNITY_POSTS } from "@/data/assets";
 import { TranslationStrings } from "@/types";
 
 interface CommunityTabProps {
@@ -10,12 +9,8 @@ interface CommunityTabProps {
   t: TranslationStrings;
   communityTab: string;
   setCommunityTab: (v: string) => void;
-  trendingExpanded: boolean;
-  setTrendingExpanded: (v: boolean) => void;
   commentsExpanded: boolean;
   setCommentsExpanded: (v: boolean) => void;
-  trendingTimeframe: string;
-  setTrendingTimeframe: (v: string) => void;
   commentsTimeframe: string;
   setCommentsTimeframe: (v: string) => void;
   setSelectedAssetId: (id: string) => void;
@@ -24,9 +19,7 @@ interface CommunityTabProps {
 
 export function CommunityTab({
   language, t, communityTab, setCommunityTab,
-  trendingExpanded, setTrendingExpanded,
   commentsExpanded, setCommentsExpanded,
-  trendingTimeframe, setTrendingTimeframe,
   commentsTimeframe, setCommentsTimeframe,
   setSelectedAssetId, setActiveTab,
 }: CommunityTabProps) {
@@ -69,57 +62,6 @@ export function CommunityTab({
         </div>
       ) : (
         <div className="flex flex-col gap-6">
-          {/* Trending Stocks */}
-          <div className="bg-white/5 border border-white/[0.03] rounded-2xl overflow-hidden">
-            <button onClick={() => setTrendingExpanded(!trendingExpanded)} className="w-full flex items-center justify-between p-4 bg-black/20 hover:bg-white/5 transition-colors">
-              <h3 className="text-[11px] font-bold text-[var(--mp-text-secondary)] uppercase tracking-widest">{t.trendingStocks}</h3>
-              <div className="flex items-center gap-3">
-                <div className="px-2 py-0.5 rounded bg-white/5 text-[8px] font-black text-white/40 uppercase tracking-tighter">{t.expandView}</div>
-                <ChevronDown className={`w-4 h-4 text-[var(--mp-text-secondary)] transition-transform duration-300 ${trendingExpanded ? "rotate-180" : ""}`} />
-              </div>
-            </button>
-            <AnimatePresence>
-              {trendingExpanded && (
-                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="flex flex-col gap-2 p-3">
-                  <div className="flex items-center gap-1 mb-4 overflow-x-auto scrollbar-hide pb-1">
-                    {["Daily", "Weekly", "Monthly", "Yearly", "All Time"].map((tf) => (
-                      <button key={tf} onClick={() => setTrendingTimeframe(tf)} className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all whitespace-nowrap ${tf === trendingTimeframe ? "bg-[var(--mp-cyan)] text-background" : "bg-white/5 text-[var(--mp-text-secondary)] hover:bg-white/10"}`}>
-                        {tf === "Daily" ? t.daily : tf === "Weekly" ? t.weekly : tf === "Monthly" ? t.monthly : tf === "Yearly" ? t.yearly : t.allTime}
-                      </button>
-                    ))}
-                  </div>
-                  {(() => {
-                    const tfKey = trendingTimeframe === "Daily" ? "1D" : trendingTimeframe === "Weekly" ? "1W" : trendingTimeframe === "Monthly" ? "1M" : trendingTimeframe === "Yearly" ? "1Y" : "ALL";
-                    const sorted = [...ASSETS].sort((a, b) => {
-                      const aData = a.data[tfKey] || a.data["1D"];
-                      const bData = b.data[tfKey] || b.data["1D"];
-                      const aChange = ((aData[aData.length - 1] - aData[0]) / aData[0]) * 100;
-                      const bChange = ((bData[bData.length - 1] - bData[0]) / bData[0]) * 100;
-                      return Math.abs(bChange) - Math.abs(aChange);
-                    });
-                    return sorted.slice(0, 8).map((asset, i) => {
-                      const data = asset.data[tfKey] || asset.data["1D"];
-                      const pctChange = ((data[data.length - 1] - data[0]) / data[0]) * 100;
-                      const isPositive = pctChange >= 0;
-                      return (
-                        <div key={asset.id} className="flex items-center justify-between bg-white/5 rounded-xl p-3 hover:bg-white/[0.08] transition-colors cursor-pointer" onClick={() => { setSelectedAssetId(asset.id); setActiveTab("dashboard"); }}>
-                          <div className="flex items-center gap-3">
-                            <span className="text-[var(--mp-text-secondary)] font-bold text-xs">#{i + 1}</span>
-                            <div className="flex flex-col"><span className="font-bold text-sm">{asset.name}</span><span className="text-[9px] text-[var(--mp-text-secondary)] font-medium">{asset.symbol}</span></div>
-                          </div>
-                          <div className="flex items-center gap-4">
-                            <Sparkline data={data.slice(-15)} color={isPositive ? "#39FF14" : "#E50000"} />
-                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isPositive ? "mp-positive-badge" : "mp-negative-badge"}`}>{isPositive ? "+" : ""}{pctChange.toFixed(1)}%</span>
-                          </div>
-                        </div>
-                      );
-                    });
-                  })()}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
           {/* Trending Comments */}
           <div className="bg-white/5 border border-white/[0.03] rounded-2xl overflow-hidden">
             <button onClick={() => setCommentsExpanded(!commentsExpanded)} className="w-full flex items-center justify-between p-4 bg-black/20 hover:bg-white/5 transition-colors">

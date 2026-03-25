@@ -74,9 +74,7 @@ export default function MarketPulseApp({ containerHeight }: { containerHeight?: 
     reader.readAsDataURL(file);
   };
 
-  const [trendingExpanded, setTrendingExpanded] = useState(false);
   const [commentsExpanded, setCommentsExpanded] = useState(false);
-  const [trendingTimeframe, setTrendingTimeframe] = useState("Daily");
   const [commentsTimeframe, setCommentsTimeframe] = useState("Daily");
 
   const [watchlistAssets, setWatchlistAssets] = useState<string[]>(() => {
@@ -521,12 +519,8 @@ export default function MarketPulseApp({ containerHeight }: { containerHeight?: 
             {activeTab === "markets" && (
               <motion.div key="markets" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="px-6 pt-12 pb-24">
                 <h2 className="text-2xl font-black tracking-tight uppercase mb-8 mt-2">{t.markets}</h2>
-                <div className="relative mb-8">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--mp-text-secondary)]" />
-                  <input type="text" placeholder={t.searchPlaceholder} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-white/5 border border-white/[0.05] rounded-2xl pl-11 pr-4 py-4 text-sm text-foreground focus:outline-none focus:border-[var(--mp-cyan)]/50 transition-colors" />
-                </div>
                 {["Stocks", "Commodities", "Crypto"].map((category) => {
-                  const categoryAssets = ASSETS.filter((a) => a.category === category && (a.name.toLowerCase().includes(searchQuery.toLowerCase()) || a.symbol.toLowerCase().includes(searchQuery.toLowerCase())));
+                  const categoryAssets = ASSETS.filter((a) => a.category === category);
                   if (categoryAssets.length === 0) return null;
                   const isExpanded = expandedCategory === category;
                   const categoryLabel = category === "Stocks" ? t.stocks : category === "Commodities" ? t.commodities : t.crypto;
@@ -574,12 +568,8 @@ export default function MarketPulseApp({ containerHeight }: { containerHeight?: 
                 t={t}
                 communityTab={communityTab}
                 setCommunityTab={setCommunityTab}
-                trendingExpanded={trendingExpanded}
-                setTrendingExpanded={setTrendingExpanded}
                 commentsExpanded={commentsExpanded}
                 setCommentsExpanded={setCommentsExpanded}
-                trendingTimeframe={trendingTimeframe}
-                setTrendingTimeframe={setTrendingTimeframe}
                 commentsTimeframe={commentsTimeframe}
                 setCommentsTimeframe={setCommentsTimeframe}
                 setSelectedAssetId={setSelectedAssetId}
