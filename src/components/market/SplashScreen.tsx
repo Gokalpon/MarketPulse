@@ -62,12 +62,12 @@ export const SplashScreen = ({ isExitingSplash, isSplashPressed, onSplashClick, 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.9, delay: 1.0, ease: [0.22, 1, 0.36, 1] }}
-        className="absolute bottom-28 inset-x-8 flex justify-center"
+        className="absolute bottom-28 inset-x-16 flex justify-center"
       >
         <motion.button
           onClick={onSplashClick}
           whileTap={{ scale: 0.96 }}
-          className="relative w-full py-5 rounded-[22px] overflow-hidden text-[13px] font-black uppercase tracking-[0.22em] text-white/70"
+          className="relative w-full py-4 rounded-[100px] overflow-hidden text-[13px] font-black uppercase tracking-[0.22em] text-white/70"
           style={{
             background: "rgba(0,0,0,0.12)",
             backdropFilter: "blur(40px) saturate(200%)",
