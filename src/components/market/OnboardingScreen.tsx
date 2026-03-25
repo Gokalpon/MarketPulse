@@ -13,6 +13,12 @@ interface OnboardingScreenProps {
 export const OnboardingScreen = ({ onLogin, language, setLanguage, t }: OnboardingScreenProps) => {
   const [onboardingStep, setOnboardingStep] = useState(0);
   const [showLanguageMenu, setShowLanguageMenu] = useState(false);
+  const [filling, setFilling] = useState(false);
+
+  const handleGetStarted = () => {
+    if (filling) return;
+    setFilling(true);
+  };
 
   return (
     <div className="absolute inset-0 z-[300] bg-[var(--mp-bg)]">
@@ -59,7 +65,7 @@ export const OnboardingScreen = ({ onLogin, language, setLanguage, t }: Onboardi
         </div>
 
         {/* Content */}
-        <div className="flex-1 flex flex-col justify-center w-full max-w-[340px]">
+        <div className="flex-1 flex flex-col justify-center w-full max-w-[375px]">
           <AnimatePresence mode="wait">
             {onboardingStep === 0 ? (
               <motion.div
@@ -72,7 +78,7 @@ export const OnboardingScreen = ({ onLogin, language, setLanguage, t }: Onboardi
               >
                 {/* Card — koyu buzlu cam */}
                 <div
-                  className="rounded-[32px] p-6 mb-6 shadow-[0_40px_80px_rgba(0,0,0,0.8)] relative overflow-hidden w-full"
+                  className="rounded-[32px] p-8 mb-6 shadow-[0_40px_80px_rgba(0,0,0,0.8)] relative overflow-hidden w-full"
                   style={{
                     background: "rgba(0,0,0,0.55)",
                     backdropFilter: "blur(32px) saturate(180%)",
@@ -90,24 +96,24 @@ export const OnboardingScreen = ({ onLogin, language, setLanguage, t }: Onboardi
                   </div>
                 </div>
 
-                {/* GET STARTED — pill, dar, imza gradient */}
+                {/* GET STARTED — beyaz pill, tıklayınca liquid fill */}
                 <motion.button
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => setOnboardingStep(1)}
+                  whileTap={filling ? {} : { scale: 0.97 }}
+                  onClick={handleGetStarted}
                   className="relative overflow-hidden py-[18px] px-10 rounded-full text-[13px] font-black uppercase tracking-[0.22em] text-[#040D08]"
                   style={{
-                    background: "linear-gradient(135deg, #00FF87, #00E5CC)",
-                    boxShadow: "0 8px 32px rgba(0,229,180,0.3), 0 2px 8px rgba(0,0,0,0.4)",
+                    background: "rgba(255,255,255,0.92)",
+                    boxShadow: "0 4px 24px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,1)",
                   }}
                 >
-                  {/* Shimmer */}
+                  {/* Liquid fill — alttan yukarı */}
                   <motion.div
-                    className="absolute inset-y-0 w-[40%] pointer-events-none"
-                    animate={{ x: ["-100%", "300%"] }}
-                    transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut", repeatDelay: 2.5 }}
-                    style={{
-                      background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.25) 50%, transparent 100%)",
-                    }}
+                    className="absolute inset-0 rounded-full origin-bottom pointer-events-none"
+                    initial={{ scaleY: 0 }}
+                    animate={filling ? { scaleY: 1 } : { scaleY: 0 }}
+                    transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
+                    onAnimationComplete={() => { if (filling) { setFilling(false); setOnboardingStep(1); } }}
+                    style={{ background: "linear-gradient(135deg, #00FF87, #00E5CC)" }}
                   />
                   <span className="relative z-10">{t.getStarted}</span>
                 </motion.button>
