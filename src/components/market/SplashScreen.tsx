@@ -67,7 +67,7 @@ export const SplashScreen = ({ isExitingSplash, isSplashPressed, onSplashClick, 
         <motion.button
           onClick={onSplashClick}
           whileTap={{ scale: 0.96 }}
-          className="relative w-full py-4 rounded-[100px] overflow-hidden text-[13px] font-black uppercase tracking-[0.22em] text-white/70"
+          className="relative w-full py-[22px] rounded-[100px] overflow-hidden text-[13px] font-black uppercase tracking-[0.22em] text-white/70"
           style={{
             background: "rgba(0,0,0,0.12)",
             backdropFilter: "blur(40px) saturate(200%)",
