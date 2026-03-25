@@ -1,6 +1,5 @@
 import { motion } from "motion/react";
 import { APP_ASSETS } from "@/data/assets";
-import { ChevronRight } from "lucide-react";
 
 interface SplashScreenProps {
   isExitingSplash: boolean;
@@ -58,77 +57,28 @@ export const SplashScreen = ({ isExitingSplash, isSplashPressed, onSplashClick, 
         </div>
       </div>
 
-      {/* TAP TO START — glass button with depth */}
+      {/* TAP TO START */}
       <motion.div
-        initial={{ opacity: 0, y: 24 }}
+        initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.9, delay: 1.0, ease: [0.22, 1, 0.36, 1] }}
-        className="absolute bottom-14 inset-x-8 flex justify-center"
+        transition={{ duration: 0.8, delay: 1.0, ease: [0.22, 1, 0.36, 1] }}
+        className="absolute bottom-12 inset-x-8 flex justify-center"
       >
-        {/* Outer breathing glow ring */}
-        <motion.div
-          animate={{ scale: [1, 1.06, 1], opacity: [0.4, 0.15, 0.4] }}
-          transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute inset-0 rounded-[22px]"
-          style={{
-            background: "linear-gradient(135deg, rgba(0,255,135,0.25), rgba(0,229,200,0.25))",
-            filter: "blur(12px)",
-          }}
-        />
-
         <motion.button
           onClick={onSplashClick}
           whileTap={{ scale: 0.97 }}
-          className="relative w-full flex items-center justify-between px-6 py-4 rounded-[22px] overflow-hidden"
+          animate={{ opacity: [0.7, 1, 0.7] }}
+          transition={{ opacity: { duration: 2.5, repeat: Infinity, ease: "easeInOut" } }}
+          className="w-full py-[18px] rounded-[18px] text-[14px] font-black uppercase tracking-[0.18em] text-white/80"
           style={{
             background: "rgba(255,255,255,0.07)",
             backdropFilter: "blur(24px) saturate(180%)",
             WebkitBackdropFilter: "blur(24px) saturate(180%)",
-            border: "1px solid rgba(255,255,255,0.14)",
-            boxShadow: [
-              "inset 0 1px 0 rgba(255,255,255,0.12)",
-              "inset 0 -1px 0 rgba(0,0,0,0.2)",
-              "0 0 0 1px rgba(0,255,135,0.18)",
-              "0 8px 32px rgba(0,229,180,0.18)",
-              "0 24px 60px rgba(0,0,0,0.5)",
-            ].join(", "),
+            border: "1px solid rgba(255,255,255,0.11)",
+            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.09), 0 8px 32px rgba(0,0,0,0.5)",
           }}
         >
-          {/* Inner surface shimmer */}
-          <motion.div
-            animate={{ x: ["-100%", "200%"] }}
-            transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut", repeatDelay: 1.5 }}
-            className="absolute inset-y-0 w-1/3 pointer-events-none"
-            style={{
-              background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent)",
-            }}
-          />
-
-          <div className="flex flex-col items-start gap-0.5">
-            <span
-              className="text-[16px] font-black uppercase tracking-[0.12em] leading-none"
-              style={{
-                background: "linear-gradient(135deg, #00FF87, #00E5CC)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-              }}
-            >
-              Tap to Start
-            </span>
-            <span className="text-[9px] font-medium uppercase tracking-[0.2em]" style={{ color: "rgba(255,255,255,0.35)" }}>
-              {t.slogan}
-            </span>
-          </div>
-
-          <div
-            className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
-            style={{
-              background: "linear-gradient(135deg, #00FF87, #00E5CC)",
-              boxShadow: "0 4px 16px rgba(0,229,180,0.4)",
-            }}
-          >
-            <ChevronRight className="w-4 h-4 text-[#040D08]" strokeWidth={3} />
-          </div>
+          Tap to Start
         </motion.button>
       </motion.div>
     </div>
