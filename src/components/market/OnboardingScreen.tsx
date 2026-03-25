@@ -70,25 +70,47 @@ export const OnboardingScreen = ({ onLogin, language, setLanguage, t }: Onboardi
                 transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
                 className="text-center w-full flex flex-col items-center"
               >
-                <div className="mp-glass rounded-[32px] p-6 mb-6 shadow-[0_40px_80px_rgba(0,0,0,0.8)] relative overflow-hidden group w-full">
-                  <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-                  <div className="absolute inset-0 bg-gradient-to-br from-[var(--mp-cyan)]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
+                {/* Card — koyu buzlu cam */}
+                <div
+                  className="rounded-[32px] p-6 mb-6 shadow-[0_40px_80px_rgba(0,0,0,0.8)] relative overflow-hidden w-full"
+                  style={{
+                    background: "rgba(0,0,0,0.55)",
+                    backdropFilter: "blur(32px) saturate(180%)",
+                    WebkitBackdropFilter: "blur(32px) saturate(180%)",
+                    border: "1px solid rgba(255,255,255,0.07)",
+                  }}
+                >
+                  <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/15 to-transparent" />
                   <div className="relative z-10">
-                    <h2 className="text-[18px] font-black text-foreground mb-1 leading-none tracking-tighter uppercase">{t.welcome}</h2>
-                    <h3 className="text-[24px] font-black leading-normal pb-0.5 mb-3 mp-gradient-text animate-gradient-x">{t.future}</h3>
-                    <p className="text-white/40 text-[12px] leading-relaxed font-medium">{t.description}</p>
+                    {/* Küçük label */}
+                    <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/35 mb-2">{t.welcome}</p>
+                    {/* Future of Trading — büyük ve bold */}
+                    <h3 className="text-[28px] font-black tracking-tighter leading-tight pb-0.5 mb-4 mp-gradient-text animate-gradient-x">{t.future}</h3>
+                    <p className="text-[13px] leading-relaxed font-medium text-white/65">{t.description}</p>
                   </div>
                 </div>
-                <div className="space-y-3 w-full">
-                  <motion.button
-                    whileHover={{ scale: 1.02, boxShadow: "0 0 30px rgba(255,255,255,0.2)" }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setOnboardingStep(1)}
-                    className="w-full bg-foreground text-background font-black py-4 rounded-[20px] text-[13px] uppercase tracking-[0.3em] transition-all relative overflow-hidden group"
-                  >
-                    <span className="relative z-10">{t.getStarted}</span>
-                  </motion.button>
-                </div>
+
+                {/* GET STARTED — pill, dar, imza gradient */}
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => setOnboardingStep(1)}
+                  className="relative overflow-hidden py-[18px] px-10 rounded-full text-[13px] font-black uppercase tracking-[0.22em] text-[#040D08]"
+                  style={{
+                    background: "linear-gradient(135deg, #00FF87, #00E5CC)",
+                    boxShadow: "0 8px 32px rgba(0,229,180,0.3), 0 2px 8px rgba(0,0,0,0.4)",
+                  }}
+                >
+                  {/* Shimmer */}
+                  <motion.div
+                    className="absolute inset-y-0 w-[40%] pointer-events-none"
+                    animate={{ x: ["-100%", "300%"] }}
+                    transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut", repeatDelay: 2.5 }}
+                    style={{
+                      background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.25) 50%, transparent 100%)",
+                    }}
+                  />
+                  <span className="relative z-10">{t.getStarted}</span>
+                </motion.button>
               </motion.div>
             ) : (
               <motion.div
@@ -99,8 +121,16 @@ export const OnboardingScreen = ({ onLogin, language, setLanguage, t }: Onboardi
                 transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
                 className="w-full flex flex-col items-center"
               >
-                <div className="mp-glass rounded-[32px] p-6 mb-3 shadow-[0_40px_80px_rgba(0,0,0,0.8)] relative overflow-hidden w-full">
-                  <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                <div
+                  className="rounded-[32px] p-6 mb-3 shadow-[0_40px_80px_rgba(0,0,0,0.8)] relative overflow-hidden w-full"
+                  style={{
+                    background: "rgba(0,0,0,0.55)",
+                    backdropFilter: "blur(32px) saturate(180%)",
+                    WebkitBackdropFilter: "blur(32px) saturate(180%)",
+                    border: "1px solid rgba(255,255,255,0.07)",
+                  }}
+                >
+                  <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/15 to-transparent" />
                   <h2 className="text-[15px] font-black text-foreground mb-4 text-center uppercase tracking-[0.3em]">{t.joinCommunity}</h2>
                   <div className="space-y-2">
                     <motion.button whileHover={{ x: 8, backgroundColor: "rgba(255,255,255,0.08)" }} whileTap={{ scale: 0.98 }} onClick={onLogin} className="w-full bg-white/[0.04] border border-white/[0.08] flex items-center gap-4 px-4 py-2.5 rounded-[16px] transition-all group">
@@ -141,13 +171,8 @@ export const OnboardingScreen = ({ onLogin, language, setLanguage, t }: Onboardi
           </button>
           {showLanguageMenu && (
             <>
-              <div
-                onClick={(e) => { e.stopPropagation(); setShowLanguageMenu(false); }}
-                className="fixed inset-0 z-[310]"
-              />
-              <div
-                className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-[311] w-[260px] bg-[#0D0E14] border border-white/[0.1] rounded-2xl p-2.5 shadow-[0_-10px_50px_rgba(0,0,0,0.8)] grid grid-cols-2 gap-1.5"
-              >
+              <div onClick={(e) => { e.stopPropagation(); setShowLanguageMenu(false); }} className="fixed inset-0 z-[310]" />
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-[311] w-[260px] bg-[#0D0E14] border border-white/[0.1] rounded-2xl p-2.5 shadow-[0_-10px_50px_rgba(0,0,0,0.8)] grid grid-cols-2 gap-1.5">
                 {["English", "Turkish", "German", "French", "Spanish", "Italian", "Russian", "Chinese"].map((lang) => (
                   <button
                     key={lang}
