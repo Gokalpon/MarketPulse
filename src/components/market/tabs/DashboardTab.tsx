@@ -192,18 +192,18 @@ export function DashboardTab({
     <motion.div key="dashboard" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col">
       <div className={`${chartWide ? "" : "px-4"} mt-2 transition-all duration-500`}>
         <div className={`mp-glass-card ${chartWide ? "rounded-none" : "rounded-[32px]"} p-6 relative shadow-lg transition-all duration-500`}>
-          <div className="flex justify-between items-start">
-            <div>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
               <div className="text-[var(--mp-text-secondary)] text-[11px] font-semibold tracking-[0.15em] mb-1.5">{activeAsset.symbol}</div>
               <motion.div
-                className="font-price text-foreground text-[38px] font-bold leading-none mb-4 inline-block"
+                className="font-price text-foreground text-[clamp(30px,9vw,38px)] font-bold leading-none mb-4 inline-block pr-2"
                 initial={{ opacity: 0.8 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.3 }}
               >
                 ${animatedPrice}
               </motion.div>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                 <div className={`px-2 py-1 rounded-lg flex items-center gap-1 font-bold text-[11px] ${liveChange.startsWith("+") ? "mp-positive-badge" : liveChange.startsWith("-") ? "mp-negative-badge" : "bg-white/10 text-foreground"}`}>
                   {liveIsUp ? <TrendingUp className="w-3 h-3" strokeWidth={3} /> : <TrendingDown className="w-3 h-3" strokeWidth={3} />}
                   {liveChange}
@@ -223,7 +223,7 @@ export function DashboardTab({
                 </div>
               </div>
             </div>
-            <div onClick={() => setIsAssetPickerOpen(true)} className="w-8 h-8 rounded-full bg-white/5 border border-white/[0.05] flex items-center justify-center hover:bg-white/10 transition-colors cursor-pointer active:scale-95">
+            <div onClick={() => setIsAssetPickerOpen(true)} className="w-8 h-8 shrink-0 rounded-full bg-white/5 border border-white/[0.05] flex items-center justify-center hover:bg-white/10 transition-colors cursor-pointer active:scale-95">
               <ChevronDown className="w-4 h-4 text-white/60" strokeWidth={2} />
             </div>
           </div>

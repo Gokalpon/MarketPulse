@@ -426,7 +426,7 @@ export default function MarketPulseApp({ containerHeight }: { containerHeight?: 
           {isSearchActive && (
             <>
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsSearchActive(false)} className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[140]" />
-              <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="absolute top-[110px] inset-x-0 px-6 z-[145] bg-black/80 backdrop-blur-2xl border-b border-white/[0.05] shadow-2xl max-h-[500px] overflow-y-auto">
+              <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="absolute top-[calc(110px+env(safe-area-inset-top))] inset-x-0 px-6 z-[145] bg-black/80 backdrop-blur-2xl border-b border-white/[0.05] shadow-2xl max-h-[500px] overflow-y-auto">
                 <div className="py-6 max-w-2xl mx-auto">
                   <div className="relative mb-6">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--mp-text-secondary)]" />
@@ -610,7 +610,13 @@ export default function MarketPulseApp({ containerHeight }: { containerHeight?: 
         </AnimatePresence>
 
         {/* Main Content */}
-        <main className="absolute inset-0 z-20 overflow-y-auto overflow-x-hidden scrollbar-hide" style={{ paddingTop: '110px', paddingBottom: '90px' }}>
+        <main
+          className="absolute inset-0 z-20 overflow-y-auto overflow-x-hidden scrollbar-hide"
+          style={{
+            paddingTop: "calc(110px + env(safe-area-inset-top))",
+            paddingBottom: "calc(90px + env(safe-area-inset-bottom))",
+          }}
+        >
           <AnimatePresence mode="wait">
             <Suspense fallback={<div className="flex-1 flex items-center justify-center"><div className="w-8 h-8 border-2 border-[var(--mp-cyan)] border-t-transparent rounded-full animate-spin" /></div>}>
               {/* DASHBOARD TAB */}
