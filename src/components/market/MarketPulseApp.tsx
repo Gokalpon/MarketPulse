@@ -395,8 +395,9 @@ export default function MarketPulseApp({ containerHeight }: { containerHeight?: 
 
         {/* Header */}
         <header
-          className="absolute top-0 inset-x-0 z-[100] px-6 pb-4 pt-[calc(3rem+env(safe-area-inset-top))]"
+          className="absolute top-0 inset-x-0 z-[100] px-6 pb-4"
           style={{
+            paddingTop: "calc(3rem + env(safe-area-inset-top))",
             background: "rgba(5, 5, 8, 0.55)",
             backdropFilter: "blur(32px) saturate(160%)",
             WebkitBackdropFilter: "blur(32px) saturate(160%)",
@@ -426,7 +427,13 @@ export default function MarketPulseApp({ containerHeight }: { containerHeight?: 
           {isSearchActive && (
             <>
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsSearchActive(false)} className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[140]" />
-              <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="absolute top-[calc(110px+env(safe-area-inset-top))] inset-x-0 px-6 z-[145] bg-black/80 backdrop-blur-2xl border-b border-white/[0.05] shadow-2xl max-h-[500px] overflow-y-auto">
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="absolute inset-x-0 px-6 z-[145] bg-black/80 backdrop-blur-2xl border-b border-white/[0.05] shadow-2xl max-h-[500px] overflow-y-auto"
+                style={{ top: "calc(110px + env(safe-area-inset-top))" }}
+              >
                 <div className="py-6 max-w-2xl mx-auto">
                   <div className="relative mb-6">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--mp-text-secondary)]" />
