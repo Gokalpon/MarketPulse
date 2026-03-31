@@ -163,7 +163,7 @@ export default function MarketPulseApp({ containerHeight }: { containerHeight?: 
     const timeoutId = setTimeout(async () => {
       try {
         setIsSearching(true);
-        const res = await fetch(`http://localhost:3001/api/market/search?q=${searchQuery}`);
+        const res = await fetch(`/api/market/search?q=${encodeURIComponent(searchQuery)}`);
         if (!res.ok) throw new Error("Search failed");
         const data = await res.json();
         setSearchResults(data);
@@ -214,7 +214,7 @@ export default function MarketPulseApp({ containerHeight }: { containerHeight?: 
       setSelectedAssetId(newAsset.id);
       setActiveTab("dashboard");
       try {
-        const res = await fetch(`http://localhost:3001/api/market/quote?symbol=${quote.symbol}`);
+        const res = await fetch(`/api/market/quote?symbol=${encodeURIComponent(quote.symbol)}`);
         if (res.ok) {
           const data = await res.json();
           newAsset.price = data.price;
@@ -362,7 +362,7 @@ export default function MarketPulseApp({ containerHeight }: { containerHeight?: 
     }, 1500);
   };
 
-  const containerStyle = containerHeight ? { height: containerHeight } : { minHeight: "100vh" };
+  const containerStyle = containerHeight ? { height: containerHeight } : { minHeight: "100dvh" as const };
 
   // Splash
   if (showSplash) {
@@ -395,7 +395,7 @@ export default function MarketPulseApp({ containerHeight }: { containerHeight?: 
 
         {/* Header */}
         <header
-          className="absolute top-0 inset-x-0 z-[100] px-6 pt-12 pb-4"
+          className="absolute top-0 inset-x-0 z-[100] px-6 pb-4 pt-[calc(3rem+env(safe-area-inset-top))]"
           style={{
             background: "rgba(5, 5, 8, 0.55)",
             backdropFilter: "blur(32px) saturate(160%)",
