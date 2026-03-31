@@ -256,6 +256,10 @@ export function DashboardTab({
                       <stop offset="0%" stopColor="#00FFFF" stopOpacity="0.1" />
                       <stop offset="100%" stopColor="#00FFFF" stopOpacity="0" />
                     </linearGradient>
+                    <linearGradient id="dotGrad" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">
+                      <stop offset="0%" stopColor="#00FFFF" />
+                      <stop offset="100%" stopColor="#00FF87" />
+                    </linearGradient>
                   </defs>
                   <path d={areaD} fill="url(#areaGrad)" />
                   <path d={pathD} fill="none" stroke="url(#lineGrad)" strokeWidth="2.2" vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" />
@@ -273,7 +277,7 @@ export function DashboardTab({
                     const cx = getX(xi);
                     const cy = getY(visibleData[xi]);
                     return (
-                      <circle key={`dot-${point.idx}`} cx={cx} cy={cy} r="2.7" fill={isNews ? "#00FFFF" : "white"} />
+                      <circle key={`dot-${point.idx}`} cx={cx} cy={cy} r="2" fill={isNews ? "url(#dotGrad)" : "white"} />
                     );
                   })}
 
@@ -285,12 +289,12 @@ export function DashboardTab({
                     const xi = Math.max(0, Math.min(visibleData.length - 1, vi));
                     const cx = getX(xi);
                     const cy = getY(visibleData[xi] ?? cluster.avgPrice);
-                    const r = cluster.count >= 5 ? 3.6 : cluster.count >= 2 ? 3.15 : 2.7;
+                    const r = cluster.count >= 5 ? 2.7 : cluster.count >= 2 ? 2.36 : 2;
                     return (
                       <g key={`dot-cluster-${ci}`}>
                         <circle cx={cx} cy={cy} r={r} fill="#B24BF3" />
                         {cluster.count > 1 && (
-                          <text x={cx} y={cy + 0.5} textAnchor="middle" dominantBaseline="middle" fill="white" fontSize="2.8" fontWeight="900">{cluster.count}</text>
+                          <text x={cx} y={cy + 0.5} textAnchor="middle" dominantBaseline="middle" fill="white" fontSize="2.1" fontWeight="900">{cluster.count}</text>
                         )}
                       </g>
                     );
@@ -347,14 +351,15 @@ export function DashboardTab({
                           initial={{ scale: 0.4, opacity: 0 }}
                           animate={{ scale: 1, opacity: 1 }}
                           transition={{ type: "spring", stiffness: 400, damping: 28 }}
-                          className={`w-28 h-28 rounded-full flex items-center justify-center overflow-hidden cursor-pointer ${isNews ? "mp-gradient-badge shadow-[0_10px_30px_rgba(0,255,255,0.4)]" : "bg-foreground shadow-[0_10px_30px_rgba(255,255,255,0.3)]"}`}
+                          className={`w-21 h-21 rounded-full shrink-0 flex items-center justify-center overflow-hidden cursor-pointer ${isNews ? "mp-gradient-badge shadow-[0_10px_30px_rgba(0,255,255,0.4)]" : "bg-foreground shadow-[0_10px_30px_rgba(255,255,255,0.3)]"}`}
+                          style={{ width: 84, height: 84 }}
                           onClick={(e) => { e.stopPropagation(); handlePointClick(point); }}
                         >
-                          <div className="p-3 text-center flex flex-col items-center justify-center h-full w-full relative">
-                            <div className={`text-[9px] font-black uppercase tracking-wider mb-1 ${isNews ? "text-background opacity-70" : point.sentiment === "Positive" ? "text-[#00C805]" : point.sentiment === "Negative" ? "text-[var(--mp-red)]" : "text-[#0088FF]"}`}>
+                          <div className="p-2 text-center flex flex-col items-center justify-center h-full w-full relative">
+                            <div className={`text-[7px] font-black uppercase tracking-wider mb-0.5 ${isNews ? "text-background opacity-70" : point.sentiment === "Positive" ? "text-[#00C805]" : point.sentiment === "Negative" ? "text-[var(--mp-red)]" : "text-[#0088FF]"}`}>
                               {isNews ? t.newsAlert : point.sentiment}
                             </div>
-                            <div className={`text-[11px] font-bold leading-snug line-clamp-2 mb-1.5 ${isNews ? "text-background" : "text-[#0A0C0E]"}`}>{point.translation}</div>
+                            <div className={`text-[8px] font-bold leading-snug line-clamp-2 mb-1 ${isNews ? "text-background" : "text-[#0A0C0E]"}`}>{point.translation}</div>
                             {isNews ? (
                               <button
                                 onClick={(e) => { e.stopPropagation(); window.open('https://www.reuters.com/business/finance', '_blank', 'noopener,noreferrer'); }}
@@ -370,7 +375,8 @@ export function DashboardTab({
                         </motion.div>
                       ) : (
                         <div
-                          className="w-10 h-10 cursor-pointer rounded-full"
+                          className="cursor-pointer rounded-full shrink-0"
+                          style={{ width: 30, height: 30 }}
                           onClick={(e) => { e.stopPropagation(); handlePointClick(point); }}
                         />
                       )}
@@ -397,18 +403,20 @@ export function DashboardTab({
                           initial={{ scale: 0.4, opacity: 0 }}
                           animate={{ scale: 1, opacity: 1 }}
                           transition={{ type: "spring", stiffness: 400, damping: 28 }}
-                          className="w-28 h-28 mp-gradient-badge-purple rounded-full flex items-center justify-center overflow-hidden cursor-pointer shadow-[0_10px_30px_rgba(178,75,243,0.6)]"
+                          className="mp-gradient-badge-purple rounded-full shrink-0 flex items-center justify-center overflow-hidden cursor-pointer shadow-[0_10px_30px_rgba(178,75,243,0.6)]"
+                          style={{ width: 84, height: 84 }}
                           onClick={(e) => { e.stopPropagation(); handlePointClick(cluster); }}
                         >
-                          <div className="p-3 text-center flex flex-col items-center justify-center h-full w-full relative">
-                            <div className="text-[10px] font-black uppercase tracking-wider text-white mb-1">{cluster.sentiment}</div>
-                            <div className="text-[11px] font-bold leading-snug line-clamp-2 text-white mb-1.5">{cluster.translation || "Community sentiment"}</div>
+                          <div className="p-2 text-center flex flex-col items-center justify-center h-full w-full relative">
+                            <div className="text-[7px] font-black uppercase tracking-wider text-white mb-0.5">{cluster.sentiment}</div>
+                            <div className="text-[8px] font-bold leading-snug line-clamp-2 text-white mb-1">{cluster.translation || "Community sentiment"}</div>
                             <div className="absolute bottom-2 text-white/50"><ChevronDown className="w-3 h-3" strokeWidth={3} /></div>
                           </div>
                         </motion.div>
                       ) : (
                         <div
-                          className="w-10 h-10 cursor-pointer rounded-full"
+                          className="cursor-pointer rounded-full shrink-0"
+                          style={{ width: 30, height: 30 }}
                           onClick={(e) => { e.stopPropagation(); handlePointClick(cluster); }}
                         />
                       )}
