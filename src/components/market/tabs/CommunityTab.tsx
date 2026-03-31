@@ -6,7 +6,7 @@ import { TranslationStrings } from "@/types";
 
 /* ── HELPER COMPONENTS ── */
 
-function PostCard({ post, t, language }: { post: any; t: any; language: string }) {
+const PostCard = React.memo(function PostCard({ post, t, language }: { post: any; t: any; language: string }) {
   const [isTranslated, setIsTranslated] = React.useState(false);
   
   const originalText = post.text;
@@ -62,9 +62,9 @@ function PostCard({ post, t, language }: { post: any; t: any; language: string }
       </div>
     </div>
   );
-}
+});
 
-function IdeaCard({ idea, t, language }: { idea: any; t: any; language: string }) {
+const IdeaCard = React.memo(function IdeaCard({ idea, t, language }: { idea: any; t: any; language: string }) {
   const [isTranslated, setIsTranslated] = React.useState(false);
   
   const originalText = "Analyzing the current price action, we see a clear breakout pattern forming on the daily chart.";
@@ -144,7 +144,7 @@ function IdeaCard({ idea, t, language }: { idea: any; t: any; language: string }
       </div>
     </div>
   );
-}
+});
 
 const USER_IDEAS = [
   { id: 4, name: "Gökalp", user: "@Gokalp", avatar: "G", asset: "SOL/USD", direction: "LONG" as const, entry: 98, target: 130, targetDate: "20 Eyl 2026", time: "8h ago", success: 95, likes: 3042, comments: 40 },
@@ -183,7 +183,10 @@ export function CommunityTab({
   const activeTab = TABS.find((tb) => tb.key === communityTab) ? communityTab : "community";
   const [platformFilter, setPlatformFilter] = React.useState("All");
 
-  const filteredFeed = platformFilter === "All" ? COMMUNITY_POSTS : COMMUNITY_POSTS.filter((p: any) => p.platform === platformFilter);
+  const filteredFeed = React.useMemo(
+    () => platformFilter === "All" ? COMMUNITY_POSTS : COMMUNITY_POSTS.filter((p: any) => p.platform === platformFilter),
+    [platformFilter]
+  );
 
   return (
     <motion.div

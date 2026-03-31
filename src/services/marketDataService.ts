@@ -57,22 +57,12 @@ export async function fetchTimeSeries(
 
   try {
     const url = `${SERVER_BASE}/chart?symbol=${encodeURIComponent(symbol)}&interval=${config.interval}&range=${config.range}`;
-    console.log("📊 Fetching chart data from:", url);
     const res = await fetch(url);
-    if (!res.ok) {
-      console.warn("🔴 Chart fetch error:", res.status, res.statusText);
-      return null;
-    }
+    if (!res.ok) return null;
     const prices: number[] = await res.json();
-    if (!Array.isArray(prices) || prices.length === 0) {
-      console.warn("⚠️ No valid price data returned");
-      return null;
-    }
-
-    console.log("✅ Chart data loaded:", prices.length, "points");
+    if (!Array.isArray(prices) || prices.length === 0) return null;
     return prices;
-  } catch (err) {
-    console.error("🔴 Failed to fetch time series:", err);
+  } catch {
     return null;
   }
 }
@@ -93,22 +83,12 @@ export async function fetchQuote(assetId: string): Promise<QuoteData | null> {
 
   const url = `${SERVER_BASE}/quote?symbol=${encodeURIComponent(symbol)}`;
   try {
-    console.log("💰 Fetching quote from:", url);
     const res = await fetch(url);
-    if (!res.ok) {
-      console.warn("🔴 Quote fetch error:", res.status, res.statusText);
-      return null;
-    }
+    if (!res.ok) return null;
     const quote: QuoteData = await res.json();
-    if (!quote?.price) {
-      console.warn("⚠️ No valid quote data");
-      return null;
-    }
-
-    console.log("✅ Quote loaded: $" + quote.price + " (" + quote.change + ")");
+    if (!quote?.price) return null;
     return quote;
-  } catch (err) {
-    console.error("🔴 Failed to fetch quote:", err);
+  } catch {
     return null;
   }
 }

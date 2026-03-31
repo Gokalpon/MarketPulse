@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { useQuery } from "@tanstack/react-query";
 import { fetchTimeSeries, fetchQuote, QuoteData } from "@/services/marketDataService";
 
@@ -32,29 +31,31 @@ export function useMarketData({
 }: UseMarketDataOptions): MarketDataState {
   
   // Use React Query for time series data
-  const { 
-    data: tsData, 
-    isLoading: isTsLoading, 
+  const {
+    data: tsData,
+    isLoading: isTsLoading,
     error: tsError,
     refetch: refetchTs
   } = useQuery({
     queryKey: ["market-ts", assetId, timeframe],
     queryFn: () => fetchTimeSeries(assetId, timeframe),
-    refetchInterval: 60_000, // Refresh chart every 60s
-    staleTime: 30_000,
+    refetchInterval: 60_000,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
   });
 
   // Use React Query for quote data
-  const { 
-    data: quoteData, 
+  const {
+    data: quoteData,
     isLoading: isQuoteLoading,
     error: quoteError,
     refetch: refetchQuote
   } = useQuery({
     queryKey: ["market-quote", assetId],
     queryFn: () => fetchQuote(assetId),
-    refetchInterval: 30_000, // Refresh quote every 30s
-    staleTime: 15_000,
+    refetchInterval: 30_000,
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
   });
 
   const refresh = () => {
@@ -65,12 +66,6 @@ export function useMarketData({
   const chartData = tsData && tsData.length > 0 ? tsData : fallbackData;
   const isLive = !!tsData;
   const quote = quoteData as QuoteData | null;
-
-  // Log errors for debugging
-  useEffect(() => {
-    if (tsError) console.error("🔴 Time Series API Error:", tsError);
-    if (quoteError) console.error("🔴 Quote API Error:", quoteError);
-  }, [tsError, quoteError]);
 
   return {
     chartData,

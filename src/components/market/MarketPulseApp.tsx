@@ -23,9 +23,8 @@ const CommentSheet = React.lazy(() => import("@/components/market/sheets/Comment
 const MyCommentsSheet = React.lazy(() => import("@/components/market/sheets/MyCommentsSheet").then(m => ({ default: m.MyCommentsSheet })));
 const DetailedPointSheet = React.lazy(() => import("@/components/market/sheets/DetailedPointSheet").then(m => ({ default: m.DetailedPointSheet })));
 
-export default function MarketPulseApp({ containerHeight }: { containerHeight?: number } = {}) {
-  // Global SVG Definitions for gradients and masks
-  const GlobalSVGDefs = () => (
+function GlobalSVGDefs() {
+  return (
     <svg width="0" height="0" className="absolute pointer-events-none">
       <defs>
         <linearGradient id="mpIconGrad" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -36,6 +35,9 @@ export default function MarketPulseApp({ containerHeight }: { containerHeight?: 
       </defs>
     </svg>
   );
+}
+
+export default function MarketPulseApp({ containerHeight }: { containerHeight?: number } = {}) {
 
   const [showSplash, setShowSplash] = useState(true);
   const [isExitingSplash, setIsExitingSplash] = useState(false);
@@ -236,8 +238,8 @@ export default function MarketPulseApp({ containerHeight }: { containerHeight?: 
   const allAssetUserComments = useMemo(() => userComments.filter((c) => c.assetId === selectedAssetId), [userComments, selectedAssetId]);
 
   // Chart math for sentimentClusters computation
-  const minVal = activeData.length > 0 ? Math.min(...activeData) * 0.995 : 0;
-  const maxVal = activeData.length > 0 ? Math.max(...activeData) * 1.005 : 1;
+  const minVal = useMemo(() => activeData.length > 0 ? Math.min(...activeData) * 0.995 : 0, [activeData]);
+  const maxVal = useMemo(() => activeData.length > 0 ? Math.max(...activeData) * 1.005 : 1, [activeData]);
 
   const sentimentClusters = useMemo(() => {
     if (activeUserComments.length === 0) return [];

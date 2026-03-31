@@ -137,8 +137,14 @@ export function DashboardTab({
       setShowCommentInput(false);
     }
   };
-  const pathD = visibleData.length > 1 ? visibleData.map((d, i) => `${i === 0 ? "M" : "L"} ${getX(i)} ${getY(d)}`).join(" ") : "M 50 50";
-  const areaD = visibleData.length > 1 ? `${pathD} L ${getX(visibleData.length - 1)} 100 L ${getX(0)} 100 Z` : "M 50 50 L 50 100 L 50 100 Z";
+  const pathD = useMemo(() =>
+    visibleData.length > 1 ? visibleData.map((d, i) => `${i === 0 ? "M" : "L"} ${getX(i)} ${getY(d)}`).join(" ") : "M 50 50",
+    [visibleData, minVal, maxVal] // eslint-disable-line react-hooks/exhaustive-deps
+  );
+  const areaD = useMemo(() =>
+    visibleData.length > 1 ? `${pathD} L ${getX(visibleData.length - 1)} 100 L ${getX(0)} 100 Z` : "M 50 50 L 50 100 L 50 100 Z",
+    [pathD, visibleData.length] // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   // X-axis date labels
   const xAxisLabels = useMemo(() => {
