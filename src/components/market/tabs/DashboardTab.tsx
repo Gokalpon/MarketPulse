@@ -2,9 +2,20 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useCountUpAnimation } from "@/hooks/useCountUpAnimation";
 import {
-  TrendingUp, TrendingDown, ChevronDown, ChevronRight, ChevronUp,
-  Brain, Edit3, ExternalLink, Wifi, WifiOff, Maximize2, Minimize2,
+  TrendingUp, TrendingDown, ChevronDown, ChevronRight,
+  Brain, Edit3, ExternalLink, WifiOff, Plus, X,
 } from "lucide-react";
+
+function LiveDot() {
+  const colors = ["#3b82f6", "#22c55e", "#ffffff", "#22c55e", "#3b82f6"];
+  return (
+    <motion.span
+      style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", flexShrink: 0 }}
+      animate={{ backgroundColor: colors, boxShadow: colors.map(c => `0 0 6px ${c}88`) }}
+      transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+    />
+  );
+}
 
 interface DashboardTabProps {
   language: string;
@@ -30,7 +41,7 @@ interface DashboardTabProps {
   chartCrosshair: { idx: number; price: number; x: number; y: number } | null;
   setChartCrosshair: (c: any) => void;
   handleChartTap: (e: React.MouseEvent<HTMLDivElement>) => void;
-  openCommentSheet: () => void;
+  openCommentSheet: (idx?: number) => void;
   handlePointClick: (point: any) => void;
   isAnalyzing: boolean;
   aiAnalysis: string | null;
@@ -53,6 +64,10 @@ export function DashboardTab({
 }: DashboardTabProps) {
   const [chartHeightLevel, setChartHeightLevel] = useState(1); // 0=xs 1=sm 2=md 3=lg
   const [chartWide, setChartWide] = useState(false);
+  const [showCommentInput, setShowCommentInput] = useState(false);
+  const [commentPriceInput, setCommentPriceInput] = useState("");
+  const [commentInputMode, setCommentInputMode] = useState<"price" | "time">("price");
+  const [matchingPriceOptions, setMatchingPriceOptions] = useState<{ visIdx: number; globalIdx: number; date: Date }[] | null>(null);
 
   const prevPriceRef = useRef(livePrice);
   const [animStart, setAnimStart] = useState(livePrice);
@@ -91,6 +106,33 @@ export function DashboardTab({
 
   const getX = (i: number) => visibleData.length > 1 ? 4 + (i / (visibleData.length - 1)) * 92 : 50;
   const getY = (v: number) => 8 + (100 - ((v - minVal) / range) * 100) * 0.84;
+
+  const getPointDate = (visIdx: number): Date => {
+    const intervalMs: Record<string, number> = { "1H": 5 * 60 * 1000, "1D": 15 * 60 * 1000, "1W": 60 * 60 * 1000, "1M": 24 * 60 * 60 * 1000, "1Y": 7 * 24 * 60 * 60 * 1000, "ALL": 30 * 24 * 60 * 60 * 1000 };
+    const ms = intervalMs[timeframe] || intervalMs["1D"];
+    const now = new Date();
+    const actualIdx = zoomStart + visIdx;
+    return new Date(now.getTime() - (activeData.length - 1 - actualIdx) * ms);
+  };
+
+  const handlePriceCommentSubmit = () => {
+    const targetPrice = parseFloat(commentPriceInput) || livePrice;
+    const closestIdx = visibleData.reduce((best, v, i) => Math.abs(v - targetPrice) < Math.abs(visibleData[best] - targetPrice) ? i : best, 0);
+    const closestPrice = visibleData[closestIdx];
+    const tolerance = Math.max(0.01, Math.abs(closestPrice) * 0.001);
+    const matches = visibleData
+      .map((v, i) => ({ visIdx: i, globalIdx: i + zoomStart, v }))
+      .filter(({ v }) => Math.abs(v - closestPrice) <= tolerance)
+      .map(({ visIdx, globalIdx }) => ({ visIdx, globalIdx, date: getPointDate(visIdx) }));
+    if (matches.length > 1) {
+      // Sort oldest→newest so last item = nearest (most recent)
+      matches.sort((a, b) => a.visIdx - b.visIdx);
+      setMatchingPriceOptions(matches);
+    } else {
+      openCommentSheet(closestIdx + zoomStart);
+      setShowCommentInput(false);
+    }
+  };
   const pathD = visibleData.length > 1 ? visibleData.map((d, i) => `${i === 0 ? "M" : "L"} ${getX(i)} ${getY(d)}`).join(" ") : "M 50 50";
   const areaD = visibleData.length > 1 ? `${pathD} L ${getX(visibleData.length - 1)} 100 L ${getX(0)} 100 Z` : "M 50 50 L 50 100 L 50 100 Z";
 
@@ -163,8 +205,17 @@ export function DashboardTab({
                   {liveChange}
                 </div>
                 <div className="flex items-center gap-1.5">
-                  {isLive ? <Wifi className="w-3 h-3 text-[var(--mp-green)]" /> : <WifiOff className="w-3 h-3 text-white/20" />}
-                  <div className={`text-[10px] font-bold tracking-[0.15em] uppercase ${isLive ? "text-[var(--mp-green)]" : "text-[var(--mp-text-secondary)]"}`}>{isLive ? (language === "Turkish" ? "CANLI" : "LIVE") : t.liveMarket}</div>
+                  {isLive ? (
+                    <>
+                      <LiveDot />
+                      <span className="text-[10px] font-bold tracking-[0.15em] uppercase text-white">{language === "Turkish" ? "CANLI" : "LIVE"}</span>
+                    </>
+                  ) : (
+                    <>
+                      <WifiOff className="w-3 h-3 text-white/20" />
+                      <span className="text-[10px] font-bold tracking-[0.15em] uppercase text-white/30">{t.liveMarket}</span>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -176,29 +227,6 @@ export function DashboardTab({
           {/* Chart */}
           <div className="relative mt-8 w-full transition-all duration-500" style={{ height: chartHeightValues[chartHeightLevel] + 20 }}>
             <div className="absolute inset-0 bottom-5 flex">
-              {/* Resize controls overlay */}
-              <div className="absolute bottom-2 right-14 flex items-center gap-1 z-30">
-                <button
-                  onClick={(e) => { e.stopPropagation(); setChartHeightLevel(l => Math.max(0, l - 1)); }}
-                  disabled={chartHeightLevel === 0}
-                  className="w-5 h-5 rounded-md bg-black/40 backdrop-blur-sm border border-white/10 flex items-center justify-center disabled:opacity-25 hover:bg-white/10 active:scale-90 transition-all"
-                >
-                  <ChevronDown className="w-2.5 h-2.5 text-white/50" />
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); setChartHeightLevel(l => Math.min(3, l + 1)); }}
-                  disabled={chartHeightLevel === 3}
-                  className="w-5 h-5 rounded-md bg-black/40 backdrop-blur-sm border border-white/10 flex items-center justify-center disabled:opacity-25 hover:bg-white/10 active:scale-90 transition-all"
-                >
-                  <ChevronUp className="w-2.5 h-2.5 text-white/50" />
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); setChartWide(w => !w); }}
-                  className={`w-5 h-5 rounded-md backdrop-blur-sm border flex items-center justify-center active:scale-90 transition-all ${chartWide ? "bg-white/10 border-white/20" : "bg-black/40 border-white/10 hover:bg-white/10"}`}
-                >
-                  {chartWide ? <Minimize2 className="w-2.5 h-2.5 text-white/60" /> : <Maximize2 className="w-2.5 h-2.5 text-white/50" />}
-                </button>
-              </div>
 
               <div
                 ref={chartDivRef}
@@ -235,7 +263,7 @@ export function DashboardTab({
                     const cx = getX(xi);
                     const cy = getY(visibleData[xi]);
                     return (
-                      <circle key={`dot-${point.idx}`} cx={cx} cy={cy} r="3" fill={isNews ? "#00FFFF" : "white"} />
+                      <circle key={`dot-${point.idx}`} cx={cx} cy={cy} r="2.7" fill={isNews ? "#00FFFF" : "white"} />
                     );
                   })}
 
@@ -247,12 +275,12 @@ export function DashboardTab({
                     const xi = Math.max(0, Math.min(visibleData.length - 1, vi));
                     const cx = getX(xi);
                     const cy = getY(visibleData[xi] ?? cluster.avgPrice);
-                    const r = cluster.count >= 5 ? 4 : cluster.count >= 2 ? 3.5 : 3;
+                    const r = cluster.count >= 5 ? 3.6 : cluster.count >= 2 ? 3.15 : 2.7;
                     return (
                       <g key={`dot-cluster-${ci}`}>
                         <circle cx={cx} cy={cy} r={r} fill="#B24BF3" />
                         {cluster.count > 1 && (
-                          <text x={cx} y={cy + 0.5} textAnchor="middle" dominantBaseline="middle" fill="white" fontSize="3" fontWeight="900">{cluster.count}</text>
+                          <text x={cx} y={cy + 0.5} textAnchor="middle" dominantBaseline="middle" fill="white" fontSize="2.8" fontWeight="900">{cluster.count}</text>
                         )}
                       </g>
                     );
@@ -264,8 +292,8 @@ export function DashboardTab({
                     const ly = getY(visibleData[visibleData.length - 1]);
                     return (
                       <>
-                        <circle cx={lx} cy={ly} r="2.5" fill="#00FFFF" opacity="0.3" vectorEffect="non-scaling-stroke" />
-                        <circle cx={lx} cy={ly} r="1.4" fill="#00FFFF" vectorEffect="non-scaling-stroke" />
+                        <circle cx={lx} cy={ly} r="2.25" fill="#00FFFF" opacity="0.3" vectorEffect="non-scaling-stroke" />
+                        <circle cx={lx} cy={ly} r="1.26" fill="#00FFFF" vectorEffect="non-scaling-stroke" />
                       </>
                     );
                   })()}
@@ -423,6 +451,144 @@ export function DashboardTab({
             {language === "Turkish" ? "Yorumlarım" : "My Comments"}
           </button>
         </div>
+
+        {/* Yorum Ekle */}
+        <motion.div layout className="overflow-hidden">
+          <button
+            onClick={() => { setShowCommentInput(v => !v); setCommentPriceInput(""); }}
+            className={`w-full py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border flex items-center justify-center gap-2 ${showCommentInput ? "bg-white/10 text-white border-white/20" : "bg-white/5 text-white/40 border-white/10 hover:text-white/60"}`}
+          >
+            {showCommentInput ? <X className="w-3 h-3" strokeWidth={3} /> : <Plus className="w-3 h-3" strokeWidth={3} />}
+            {language === "Turkish" ? "Yorum Ekle" : "Add Comment"}
+          </button>
+
+          <AnimatePresence>
+            {showCommentInput && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2 }}
+                className="mt-3 bg-black/30 backdrop-blur-xl rounded-2xl border border-white/10 overflow-hidden"
+              >
+                <div className="p-4">
+                  {/* Mode toggle */}
+                  <div className="flex gap-2 mb-4">
+                    <button
+                      onClick={() => setCommentInputMode("price")}
+                      className={`flex-1 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-wider transition-all border ${commentInputMode === "price" ? "bg-white text-black border-white" : "bg-white/5 text-white/40 border-white/10"}`}
+                    >
+                      {language === "Turkish" ? "Fiyata Göre" : "By Price"}
+                    </button>
+                    <button
+                      onClick={() => setCommentInputMode("time")}
+                      className={`flex-1 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-wider transition-all border ${commentInputMode === "time" ? "bg-white text-black border-white" : "bg-white/5 text-white/40 border-white/10"}`}
+                    >
+                      {language === "Turkish" ? "Saate Göre" : "By Time"}
+                    </button>
+                  </div>
+
+                  {commentInputMode === "price" ? (
+                    <div className="flex flex-col gap-2">
+                      <div className="flex gap-2 items-center">
+                        <div className="flex-1 flex items-center bg-white/5 border border-white/10 rounded-xl px-3 py-2 gap-2">
+                          <span className="text-white/30 text-[11px] font-bold">$</span>
+                          <input
+                            type="number"
+                            value={commentPriceInput}
+                            onChange={e => { setCommentPriceInput(e.target.value); setMatchingPriceOptions(null); }}
+                            placeholder={livePrice.toFixed(2)}
+                            className="flex-1 bg-transparent text-white text-[12px] font-bold outline-none placeholder:text-white/20 min-w-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            onKeyDown={e => { if (e.key === "Enter") handlePriceCommentSubmit(); }}
+                          />
+                        </div>
+                        <button
+                          onClick={handlePriceCommentSubmit}
+                          className="w-10 h-10 rounded-xl mp-gradient-badge flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform"
+                        >
+                          <Edit3 className="w-4 h-4 text-black" strokeWidth={2.5} />
+                        </button>
+                      </div>
+                      {matchingPriceOptions && matchingPriceOptions.length > 1 && (
+                        <div className="bg-white/5 border border-white/10 rounded-xl p-2 flex flex-col gap-1">
+                          <p className="text-[8px] text-white/40 font-bold uppercase tracking-wider mb-1 px-1">
+                            {language === "Turkish" ? "Bu fiyat birden fazla noktada görüldü — tarih seç:" : "This price appears multiple times — select date:"}
+                          </p>
+                          {matchingPriceOptions.map((opt, i) => (
+                            <button
+                              key={opt.globalIdx}
+                              onClick={() => {
+                                setChartCrosshair({ idx: opt.globalIdx, price: visibleData[opt.visIdx], x: getX(opt.visIdx), y: getY(visibleData[opt.visIdx]) });
+                                openCommentSheet(opt.globalIdx);
+                                setShowCommentInput(false);
+                                setMatchingPriceOptions(null);
+                              }}
+                              className="flex items-center justify-between px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-left"
+                            >
+                              <span className="text-[10px] text-white font-medium">
+                                {opt.date.toLocaleString(language === "Turkish" ? "tr-TR" : "en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                              </span>
+                              {i === matchingPriceOptions.length - 1 && (
+                                <span className="text-[8px] text-[var(--mp-cyan)] font-bold uppercase">{language === "Turkish" ? "En Yakın" : "Nearest"}</span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex gap-2 items-center">
+                      <div className="flex-1 flex items-center bg-white/5 border border-white/10 rounded-xl px-3 py-2">
+                        <input
+                          type="time"
+                          value={commentPriceInput}
+                          onChange={e => setCommentPriceInput(e.target.value)}
+                          className="flex-1 bg-transparent text-white text-[12px] font-bold outline-none min-w-0"
+                          style={{ colorScheme: "dark" }}
+                        />
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (!commentPriceInput) return;
+                          const [h, m] = commentPriceInput.split(":").map(Number);
+                          const now = new Date();
+                          const intervalMs: Record<string, number> = {
+                            "1H": 5 * 60 * 1000, "1D": 15 * 60 * 1000, "1W": 60 * 60 * 1000,
+                            "1M": 24 * 60 * 60 * 1000, "1Y": 7 * 24 * 60 * 60 * 1000,
+                          };
+                          const ms = intervalMs[timeframe] || intervalMs["1D"];
+                          const targetMs = (h * 60 + m) * 60 * 1000;
+                          const totalLen = activeData.length;
+                          let closestIdx = 0;
+                          let closestDiff = Infinity;
+                          visibleData.forEach((_, i) => {
+                            const actualIdx = zoomStart + i;
+                            const pointTime = new Date(now.getTime() - (totalLen - 1 - actualIdx) * ms);
+                            const pointMs = (pointTime.getHours() * 60 + pointTime.getMinutes()) * 60 * 1000;
+                            const diff = Math.abs(pointMs - targetMs);
+                            if (diff < closestDiff) { closestDiff = diff; closestIdx = i; }
+                          });
+                          setChartCrosshair({ idx: closestIdx + zoomStart, price: visibleData[closestIdx], x: getX(closestIdx), y: getY(visibleData[closestIdx]) });
+                          openCommentSheet(closestIdx + zoomStart);
+                          setShowCommentInput(false);
+                        }}
+                        className="w-10 h-10 rounded-xl mp-gradient-badge flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform"
+                      >
+                        <Edit3 className="w-4 h-4 text-black" strokeWidth={2.5} />
+                      </button>
+                    </div>
+                  )}
+
+                  <p className="text-[9px] text-white/25 mt-3 text-center">
+                    {commentInputMode === "price"
+                      ? (language === "Turkish" ? "En yakın fiyat noktasına yorum eklenir" : "Comment added to nearest price point")
+                      : (language === "Turkish" ? "En yakın saat noktasına yorum eklenir" : "Comment added to nearest time point")}
+                  </p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
 
         {/* AI Analysis */}
         <div className="mt-4 bg-black/30 backdrop-blur-xl rounded-2xl p-4 border border-white/10">

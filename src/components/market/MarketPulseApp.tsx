@@ -300,9 +300,10 @@ export default function MarketPulseApp({ containerHeight }: { containerHeight?: 
     setSelectedPoint(null);
   };
 
-  const openCommentSheet = () => {
-    if (!chartCrosshair) return;
-    setCommentChartIdx(chartCrosshair.idx);
+  const openCommentSheet = (overrideIdx?: number) => {
+    const idx = overrideIdx ?? chartCrosshair?.idx;
+    if (idx === undefined) return;
+    setCommentChartIdx(idx);
     setCommentText("");
     setCommentSentiment("Neutral");
     setShowCommentSheet(true);
