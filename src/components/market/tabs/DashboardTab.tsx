@@ -68,6 +68,8 @@ export function DashboardTab({
   const [commentPriceInput, setCommentPriceInput] = useState("");
   const [commentInputMode, setCommentInputMode] = useState<"price" | "time">("price");
   const [matchingPriceOptions, setMatchingPriceOptions] = useState<{ visIdx: number; globalIdx: number; date: Date }[] | null>(null);
+  const [dateListExpanded, setDateListExpanded] = useState(false);
+  const [dateSearch, setDateSearch] = useState("");
 
   const prevPriceRef = useRef(livePrice);
   const [animStart, setAnimStart] = useState(livePrice);
@@ -128,6 +130,8 @@ export function DashboardTab({
       // Sort oldest→newest so last item = nearest (most recent)
       matches.sort((a, b) => a.visIdx - b.visIdx);
       setMatchingPriceOptions(matches);
+      setDateListExpanded(false);
+      setDateSearch("");
     } else {
       openCommentSheet(closestIdx + zoomStart);
       setShowCommentInput(false);
@@ -509,32 +513,71 @@ export function DashboardTab({
                           <Edit3 className="w-4 h-4 text-black" strokeWidth={2.5} />
                         </button>
                       </div>
-                      {matchingPriceOptions && matchingPriceOptions.length > 1 && (
-                        <div className="bg-white/5 border border-white/10 rounded-xl p-2 flex flex-col gap-1">
-                          <p className="text-[8px] text-white/40 font-bold uppercase tracking-wider mb-1 px-1">
-                            {language === "Turkish" ? "Bu fiyat birden fazla noktada görüldü — tarih seç:" : "This price appears multiple times — select date:"}
-                          </p>
-                          {matchingPriceOptions.map((opt, i) => (
-                            <button
-                              key={opt.globalIdx}
-                              onClick={() => {
-                                setChartCrosshair({ idx: opt.globalIdx, price: visibleData[opt.visIdx], x: getX(opt.visIdx), y: getY(visibleData[opt.visIdx]) });
-                                openCommentSheet(opt.globalIdx);
-                                setShowCommentInput(false);
-                                setMatchingPriceOptions(null);
-                              }}
-                              className="flex items-center justify-between px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-left"
-                            >
-                              <span className="text-[10px] text-white font-medium">
-                                {opt.date.toLocaleString(language === "Turkish" ? "tr-TR" : "en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                              </span>
-                              {i === matchingPriceOptions.length - 1 && (
-                                <span className="text-[8px] text-[var(--mp-cyan)] font-bold uppercase">{language === "Turkish" ? "En Yakın" : "Nearest"}</span>
-                              )}
-                            </button>
-                          ))}
-                        </div>
-                      )}
+                      {matchingPriceOptions && matchingPriceOptions.length > 1 && (() => {
+                        const locale = language === "Turkish" ? "tr-TR" : "en-US";
+                        const filtered = dateSearch
+                          ? matchingPriceOptions.filter(opt => opt.date.toLocaleString(locale, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).toLowerCase().includes(dateSearch.toLowerCase()))
+                          : matchingPriceOptions;
+                        const showAll = dateListExpanded || !!dateSearch;
+                        const visible = showAll ? filtered : filtered.slice(-3);
+                        const hiddenCount = filtered.length - 3;
+                        const nearestGlobalIdx = matchingPriceOptions[matchingPriceOptions.length - 1].globalIdx;
+                        return (
+                          <div className="bg-white/5 border border-white/10 rounded-xl p-2 flex flex-col gap-1">
+                            <p className="text-[8px] text-white/40 font-bold uppercase tracking-wider mb-1 px-1">
+                              {language === "Turkish" ? "Bu fiyat birden fazla noktada görüldü:" : "This price appears multiple times:"}
+                            </p>
+                            {(dateListExpanded || dateSearch !== "") && (
+                              <div className="flex items-center bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 mb-1 gap-1.5">
+                                <span className="text-white/30 text-[11px]">⌕</span>
+                                <input
+                                  type="text"
+                                  value={dateSearch}
+                                  onChange={e => setDateSearch(e.target.value)}
+                                  placeholder={language === "Turkish" ? "Tarih ara..." : "Search date..."}
+                                  className="flex-1 bg-transparent text-white text-[10px] outline-none placeholder:text-white/25 min-w-0"
+                                />
+                                {dateSearch && <button onClick={() => setDateSearch("")} className="text-white/30 text-[10px] leading-none">✕</button>}
+                              </div>
+                            )}
+                            {visible.map((opt) => (
+                              <button
+                                key={opt.globalIdx}
+                                onClick={() => {
+                                  setChartCrosshair({ idx: opt.globalIdx, price: visibleData[opt.visIdx], x: getX(opt.visIdx), y: getY(visibleData[opt.visIdx]) });
+                                  openCommentSheet(opt.globalIdx);
+                                  setShowCommentInput(false);
+                                  setMatchingPriceOptions(null);
+                                }}
+                                className="flex items-center justify-between px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-left"
+                              >
+                                <span className="text-[10px] text-white font-medium">
+                                  {opt.date.toLocaleString(locale, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                                </span>
+                                {opt.globalIdx === nearestGlobalIdx && (
+                                  <span className="text-[8px] text-[var(--mp-cyan)] font-bold uppercase">{language === "Turkish" ? "En Yakın" : "Nearest"}</span>
+                                )}
+                              </button>
+                            ))}
+                            {!showAll && hiddenCount > 0 && (
+                              <button
+                                onClick={() => setDateListExpanded(true)}
+                                className="mt-1 w-full py-1.5 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-[9px] text-white/50 font-bold uppercase tracking-wider"
+                              >
+                                {language === "Turkish" ? `+${hiddenCount} daha göster` : `Show ${hiddenCount} more`}
+                              </button>
+                            )}
+                            {showAll && !dateSearch && filtered.length > 3 && (
+                              <button
+                                onClick={() => setDateListExpanded(false)}
+                                className="mt-1 w-full py-1.5 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-[9px] text-white/50 font-bold uppercase tracking-wider"
+                              >
+                                {language === "Turkish" ? "Daralt" : "Collapse"}
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                   ) : (
                     <div className="flex gap-2 items-center">
