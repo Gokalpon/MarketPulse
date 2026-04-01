@@ -107,16 +107,6 @@ export const SplashScreen = ({ isExitingSplash, isSplashPressed, onSplashClick, 
             }}
           />
 
-          {/* Pulsing top border highlight */}
-          <motion.div
-            className="absolute top-0 left-[20%] right-[20%] h-px rounded-full pointer-events-none"
-            animate={{ opacity: [0.3, 0.8, 0.3] }}
-            transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
-            style={{
-              background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)",
-            }}
-          />
-
           Tap to Start
         </motion.button>
       </motion.div>
