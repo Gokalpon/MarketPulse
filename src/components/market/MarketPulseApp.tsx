@@ -23,6 +23,64 @@ const CommentSheet = React.lazy(() => import("@/components/market/sheets/Comment
 const MyCommentsSheet = React.lazy(() => import("@/components/market/sheets/MyCommentsSheet").then(m => ({ default: m.MyCommentsSheet })));
 const DetailedPointSheet = React.lazy(() => import("@/components/market/sheets/DetailedPointSheet").then(m => ({ default: m.DetailedPointSheet })));
 
+function WatchlistCard({ asset, onClick, layout, motionVariants }: {
+  asset: any;
+  onClick: () => void;
+  layout: "list" | "grid";
+  motionVariants: any;
+}) {
+  const { price, change, isUp, chartData } = useMarketData({
+    assetId: asset.id,
+    timeframe: "1D",
+    fallbackData: asset.data?.["1D"] ?? [],
+    fallbackPrice: asset.price,
+    fallbackChange: asset.change,
+    fallbackIsUp: asset.isUp,
+  });
+  const sparkData = chartData.slice(-20);
+  const displayPrice = price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  if (layout === "list") {
+    return (
+      <motion.div
+        variants={motionVariants}
+        onClick={onClick}
+        className="mp-glass-card rounded-2xl p-4 flex items-center justify-between hover:bg-black/30 transition-colors cursor-pointer"
+      >
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center font-bold text-sm border border-white/[0.05]">{asset.id[0]}</div>
+          <div><div className="font-bold text-[15px]">{asset.name}</div><div className="text-[11px] text-[var(--mp-text-secondary)] font-medium uppercase tracking-wider">{asset.symbol}</div></div>
+        </div>
+        <div className="flex items-center gap-4">
+          <Sparkline data={sparkData} color={isUp ? "#39FF14" : "#E50000"} />
+          <div className="text-right min-w-[70px]">
+            <div className="font-bold text-[15px]">${displayPrice}</div>
+            <div className={`text-[9px] font-bold px-1 py-0.5 rounded inline-block ${change.startsWith("+") ? "mp-positive-badge" : change.startsWith("-") ? "mp-negative-badge" : "bg-white/10 text-foreground"}`}>{change}</div>
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
+
+  return (
+    <motion.div
+      variants={motionVariants}
+      onClick={onClick}
+      className="mp-glass-card rounded-[20px] p-4 flex flex-col hover:bg-black/30 transition-colors cursor-pointer"
+    >
+      <div className="flex justify-between items-start mb-3">
+        <div className="w-8 h-8 rounded-[10px] bg-white/5 flex items-center justify-center font-bold text-xs border border-white/[0.05]">{asset.id[0]}</div>
+        <div className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${isUp ? "mp-positive-badge" : "mp-negative-badge"}`}>{change}</div>
+      </div>
+      <div className="mb-2"><div className="font-bold text-[14px] leading-tight truncate">{asset.name}</div><div className="text-[9px] text-[var(--mp-text-secondary)] uppercase tracking-widest">{asset.symbol}</div></div>
+      <div className="mt-auto">
+        <div className="font-black text-[16px] mb-1">${displayPrice}</div>
+        <Sparkline data={sparkData} color={isUp ? "#39FF14" : "#E50000"} />
+      </div>
+    </motion.div>
+  );
+}
+
 function GlobalSVGDefs() {
   return (
     <svg width="0" height="0" className="absolute pointer-events-none">
@@ -46,6 +104,15 @@ export default function MarketPulseApp({ containerHeight }: { containerHeight?: 
 
   const [activeTab, setActiveTab] = useState("dashboard");
   const [marketsSubTab, setMarketsSubTab] = useState<"watchlist" | "all">("watchlist");
+  const [currency, setCurrency] = useState("USD");
+  const [gainersExpanded, setGainersExpanded] = useState(false);
+  const [losersExpanded, setLosersExpanded] = useState(false);
+  const [moversPeriod, setMoversPeriod] = useState("1D");
+  const [moversCategory, setMoversCategory] = useState("All");
+  const [selectedMarket, setSelectedMarket] = useState("All");
+  const [showMarketPicker, setShowMarketPicker] = useState(false);
+  const [marketPickerSearch, setMarketPickerSearch] = useState("");
+  const [watchlistSort, setWatchlistSort] = useState<"default"|"gainers"|"losers"|"az">("default");
   const [selectedAssetId, setSelectedAssetId] = useState("BTC");
   const [selectedPoint, setSelectedPoint] = useState<DetailedPointData | null>(null);
   const [detailedPoint, setDetailedPoint] = useState<DetailedPointData | null>(null);
@@ -663,6 +730,8 @@ export default function MarketPulseApp({ containerHeight }: { containerHeight?: 
                 activeUserComments={activeUserComments}
                 setIsMenuOpen={setIsMenuOpen}
                 setIsAssetPickerOpen={setIsAssetPickerOpen}
+                currency={currency}
+                setCurrency={setCurrency}
               />
             )}
 
@@ -672,19 +741,28 @@ export default function MarketPulseApp({ containerHeight }: { containerHeight?: 
                 <div className="flex items-center justify-between mb-6 mt-2">
                   <h2 className="text-2xl font-black tracking-tight uppercase">{t.markets}</h2>
                   {marketsSubTab === "watchlist" && (
-                    <div className="flex bg-white/5 rounded-xl p-1 border border-white/[0.05]">
-                      <button onClick={() => setWatchlistLayout("list")} className={`p-2 rounded-lg transition-colors ${watchlistLayout === "list" ? "bg-white/10 text-foreground" : "text-[var(--mp-text-secondary)]"}`}><List className="w-4 h-4" /></button>
-                      <button onClick={() => setWatchlistLayout("grid")} className={`p-2 rounded-lg transition-colors ${watchlistLayout === "grid" ? "bg-white/10 text-foreground" : "text-[var(--mp-text-secondary)]"}`}><LayoutGrid className="w-4 h-4" /></button>
+                    <div className="flex items-center gap-2">
+                    <select value={watchlistSort} onChange={e => setWatchlistSort(e.target.value as any)}
+                      className="bg-white/[0.06] backdrop-blur-md text-white/60 text-[10px] font-bold uppercase rounded-xl px-2 py-1.5 outline-none border-none shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] cursor-pointer">
+                      <option value="default">{language === "Turkish" ? "Varsayılan" : "Default"}</option>
+                      <option value="gainers">{language === "Turkish" ? "Kazananlar" : "Gainers"}</option>
+                      <option value="losers">{language === "Turkish" ? "Kaybedenler" : "Losers"}</option>
+                      <option value="az">A–Z</option>
+                    </select>
+                    <div className="flex bg-white/[0.06] backdrop-blur-md rounded-xl p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                      <button onClick={() => setWatchlistLayout("list")} className={`p-2 rounded-lg transition-colors ${watchlistLayout === "list" ? "bg-white/15 text-foreground" : "text-[var(--mp-text-secondary)]"}`}><List className="w-4 h-4" /></button>
+                      <button onClick={() => setWatchlistLayout("grid")} className={`p-2 rounded-lg transition-colors ${watchlistLayout === "grid" ? "bg-white/15 text-foreground" : "text-[var(--mp-text-secondary)]"}`}><LayoutGrid className="w-4 h-4" /></button>
                     </div>
+                  </div>
                   )}
                 </div>
 
                 {/* Sub-tab toggle */}
-                <div className="flex bg-white/5 p-1 rounded-xl mb-6 border border-white/[0.05]">
-                  <button onClick={() => setMarketsSubTab("watchlist")} className={`flex-1 py-2 text-[11px] font-bold uppercase tracking-widest rounded-lg transition-colors ${marketsSubTab === "watchlist" ? "bg-white/10 text-foreground" : "text-[var(--mp-text-secondary)]"}`}>
+                <div className="flex bg-white/[0.06] backdrop-blur-md p-1 rounded-xl mb-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                  <button onClick={() => setMarketsSubTab("watchlist")} className={`flex-1 py-2 text-[11px] font-bold uppercase tracking-widest rounded-lg transition-all ${marketsSubTab === "watchlist" ? "bg-white/15 text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]" : "text-white/50 hover:text-white/70"}`}>
                     {t.watchlist || "Watchlist"}
                   </button>
-                  <button onClick={() => setMarketsSubTab("all")} className={`flex-1 py-2 text-[11px] font-bold uppercase tracking-widest rounded-lg transition-colors ${marketsSubTab === "all" ? "bg-white/10 text-foreground" : "text-[var(--mp-text-secondary)]"}`}>
+                  <button onClick={() => setMarketsSubTab("all")} className={`flex-1 py-2 text-[11px] font-bold uppercase tracking-widest rounded-lg transition-all ${marketsSubTab === "all" ? "bg-white/15 text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]" : "text-white/50 hover:text-white/70"}`}>
                     {language === "Turkish" ? "Tüm Piyasalar" : "All Markets"}
                   </button>
                 </div>
@@ -697,24 +775,14 @@ export default function MarketPulseApp({ containerHeight }: { containerHeight?: 
                       animate="visible"
                       variants={{ visible: { transition: { staggerChildren: 0.07 } } }}
                     >
-                      {ASSETS.filter((a) => watchlistAssets.includes(a.id)).map((asset) => (
-                        <motion.div key={asset.id}
-                          variants={{ hidden: { opacity: 0, x: -16 }, visible: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 400, damping: 30 } } }}
+                      {[...ASSETS.filter((a) => watchlistAssets.includes(a.id))].sort((a,b) => watchlistSort === "gainers" ? parseFloat(b.change)-parseFloat(a.change) : watchlistSort === "losers" ? parseFloat(a.change)-parseFloat(b.change) : watchlistSort === "az" ? a.name.localeCompare(b.name) : 0).map((asset) => (
+                        <WatchlistCard
+                          key={asset.id}
+                          asset={asset}
+                          layout="list"
                           onClick={() => { setSelectedAssetId(asset.id); setActiveTab("dashboard"); }}
-                          className="mp-glass-card rounded-2xl p-4 flex items-center justify-between hover:bg-black/30 transition-colors cursor-pointer"
-                        >
-                          <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center font-bold text-sm border border-white/[0.05]">{asset.id[0]}</div>
-                            <div><div className="font-bold text-[15px]">{asset.name}</div><div className="text-[11px] text-[var(--mp-text-secondary)] font-medium uppercase tracking-wider">{asset.symbol}</div></div>
-                          </div>
-                          <div className="flex items-center gap-4">
-                            <Sparkline data={asset.data["1D"].slice(-20)} color={asset.isUp ? "#39FF14" : "#E50000"} />
-                            <div className="text-right min-w-[70px]">
-                              <div className="font-bold text-[15px]">${asset.price.toLocaleString()}</div>
-                              <div className={`text-[9px] font-bold px-1 py-0.5 rounded inline-block ${asset.change.startsWith("+") ? "mp-positive-badge" : asset.change.startsWith("-") ? "mp-negative-badge" : "bg-white/10 text-foreground"}`}>{asset.change}</div>
-                            </div>
-                          </div>
-                        </motion.div>
+                          motionVariants={{ hidden: { opacity: 0, x: -16 }, visible: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 400, damping: 30 } } }}
+                        />
                       ))}
                     </motion.div>
                   ) : (
@@ -723,151 +791,189 @@ export default function MarketPulseApp({ containerHeight }: { containerHeight?: 
                       animate="visible"
                       variants={{ visible: { transition: { staggerChildren: 0.06 } } }}
                     >
-                      {ASSETS.filter((a) => watchlistAssets.includes(a.id)).map((asset) => (
-                        <motion.div key={asset.id}
-                          variants={{ hidden: { opacity: 0, scale: 0.92 }, visible: { opacity: 1, scale: 1, transition: { type: "spring", stiffness: 400, damping: 30 } } }}
+                      {[...ASSETS.filter((a) => watchlistAssets.includes(a.id))].sort((a,b) => watchlistSort === "gainers" ? parseFloat(b.change)-parseFloat(a.change) : watchlistSort === "losers" ? parseFloat(a.change)-parseFloat(b.change) : watchlistSort === "az" ? a.name.localeCompare(b.name) : 0).map((asset) => (
+                        <WatchlistCard
+                          key={asset.id}
+                          asset={asset}
+                          layout="grid"
                           onClick={() => { setSelectedAssetId(asset.id); setActiveTab("dashboard"); }}
-                          className="mp-glass-card rounded-[20px] p-4 flex flex-col hover:bg-black/30 transition-colors cursor-pointer"
-                        >
-                          <div className="flex justify-between items-start mb-3">
-                            <div className="w-8 h-8 rounded-[10px] bg-white/5 flex items-center justify-center font-bold text-xs border border-white/[0.05]">{asset.id[0]}</div>
-                            <div className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${asset.isUp ? "mp-positive-badge" : "mp-negative-badge"}`}>{asset.change}</div>
-                          </div>
-                          <div className="mb-2"><div className="font-bold text-[14px] leading-tight truncate">{asset.name}</div><div className="text-[9px] text-[var(--mp-text-secondary)] uppercase tracking-widest">{asset.symbol}</div></div>
-                          <div className="mt-auto">
-                            <div className="font-black text-[16px] mb-1">${asset.price.toLocaleString()}</div>
-                            <Sparkline data={asset.data["1D"].slice(-20)} color={asset.isUp ? "#39FF14" : "#E50000"} />
-                          </div>
-                        </motion.div>
+                          motionVariants={{ hidden: { opacity: 0, scale: 0.92 }, visible: { opacity: 1, scale: 1, transition: { type: "spring", stiffness: 400, damping: 30 } } }}
+                        />
                       ))}
                     </motion.div>
                   )
                 ) : (
-                  /* All Markets Content (Discover) */
-                  <div className="flex flex-col gap-8 pb-8">
-                    {/* Search Bar */}
-                    <div className="relative">
-                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
-                      <input 
-                        type="text" 
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value.toLowerCase())}
-                        placeholder={language === "Turkish" ? "Hisse, coin veya kategori ara..." : "Search assets, symbols or categories..."}
-                        className="w-full bg-white/[0.03] border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-[14px] focus:outline-none focus:border-[var(--mp-cyan)]/50 focus:bg-white/[0.05] transition-all font-medium placeholder:text-white/20 shadow-inner" 
-                      />
-                      {searchQuery && (
-                        <button onClick={() => setSearchQuery("")} className="absolute right-4 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-colors">
-                          <X className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                    
-                    {searchQuery.length > 0 ? (
-                      /* Search Results */
-                      <div>
-                        <h3 className="text-[11px] font-black uppercase tracking-widest text-[var(--mp-text-secondary)] mb-4 px-1">{language === "Turkish" ? "Arama Sonuçları" : "Search Results"}</h3>
-                        <div className="flex flex-col bg-white/[0.02] border border-white/[0.05] rounded-[28px] overflow-hidden shadow-lg backdrop-blur-sm">
-                          {isSearching ? (
-                            <div className="text-center text-white/40 py-12 text-[14px] font-medium animate-pulse">{language === "Turkish" ? "Küresel piyasalar aranıyor..." : "Searching global markets..."}</div>
-                          ) : searchResults.length > 0 ? (
-                            searchResults.map((quote) => {
-                              const isWatchlisted = watchlistAssets.includes(quote.symbol);
-                              return (
-                                <div key={quote.symbol} className="flex items-center justify-between p-4 hover:bg-white/[0.05] transition-colors cursor-pointer border-b border-white/[0.02] last:border-0 group">
-                                  <div className="flex items-center gap-4 flex-1" onClick={() => handleAddExternalAsset(quote)}>
-                                    <div className="w-11 h-11 rounded-[14px] bg-white/[0.04] flex items-center justify-center font-black text-[14px] border border-white/[0.08] shadow-inner group-hover:border-white/20 transition-colors uppercase">{quote.symbol[0]}</div>
-                                    <div>
-                                      <div className="text-[16px] font-bold text-foreground mb-0.5 max-w-[180px] truncate">{quote.shortname || quote.longname || quote.symbol}</div>
-                                      <div className="text-[11px] text-[var(--mp-text-secondary)] font-bold uppercase tracking-widest">{quote.symbol} {quote.exchDisp ? `· ${quote.exchDisp}` : ''}</div>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center gap-5">
-                                    <button onClick={(e) => { e.stopPropagation(); handleAddExternalAsset(quote); }} className={`p-2.5 rounded-xl transition-all ${isWatchlisted ? "bg-[var(--mp-cyan)]/10 border border-[var(--mp-cyan)]/30 text-[var(--mp-cyan)]" : "bg-white/5 border border-white/5 text-white/40 hover:text-white hover:bg-white/10"}`}>
-                                      <Plus className={`w-4 h-4 transition-transform duration-300 ${isWatchlisted ? "rotate-45" : ""}`} strokeWidth={3} />
-                                    </button>
-                                  </div>
-                                </div>
-                              );
-                            })
-                          ) : (
-                            <div className="text-center text-white/40 py-12 text-[14px] font-medium">{language === "Turkish" ? "Araştırdığınız kriterlere uygun sonuç bulunamadı." : "No results found for your search."}</div>
+                  /* All Markets Content */
+                  (() => {
+                    const MARKETS = [
+                      { id: "All",    label: language === "Turkish" ? "Tümü" : "All",         filter: (_a: any) => true },
+                      { id: "Crypto", label: "Crypto",                                         filter: (a: any) => a.category === "Crypto" },
+                      { id: "NASDAQ", label: "NASDAQ/US",                                      filter: (a: any) => a.category === "Stocks" && !a.symbol.includes(".IS") && !a.symbol.includes(".DE") && !a.symbol.includes(".T") },
+                      { id: "BIST",   label: language === "Turkish" ? "Borsa İstanbul" : "BIST", filter: (a: any) => a.symbol.includes(".IS") },
+                      { id: "DAX",    label: language === "Turkish" ? "Alman Borsası" : "DAX/Germany", filter: (a: any) => a.symbol.includes(".DE") || a.id === "DAX" },
+                      { id: "NIKKEI", label: language === "Turkish" ? "Japon Borsası" : "Nikkei/Japan", filter: (a: any) => a.symbol.includes(".T") || a.id === "NKY" },
+                      { id: "Commodities", label: language === "Turkish" ? "Emtialar" : "Commodities", filter: (a: any) => a.category === "Commodities" },
+                    ];
+                    const getPeriodChange = (asset: any) => {
+                      const data = asset.data?.[moversPeriod];
+                      if (!data || data.length < 2) return parseFloat(asset.change) || 0;
+                      return ((data[data.length - 1] - data[0]) / data[0]) * 100;
+                    };
+                    const activeMarket = MARKETS.find(m => m.id === selectedMarket) || MARKETS[0];
+                    const marketAssets = ASSETS.filter(activeMarket.filter);
+                    const filteredAssets = moversCategory === "All" ? ASSETS : ASSETS.filter((a: any) => a.category === moversCategory);
+                    const topGainers = [...filteredAssets].sort((a, b) => getPeriodChange(b) - getPeriodChange(a)).slice(0, 10);
+                    const topLosers = [...filteredAssets].sort((a, b) => getPeriodChange(a) - getPeriodChange(b)).slice(0, 10);
+                    const PERIODS = ["1D", "1W", "1M", "1Y"];
+                    const CATEGORIES = ["All", "Crypto", "Stocks", "Commodities"];
+                    return (
+                      <div className="flex flex-col gap-8 pb-8">
+                        {/* Search Bar */}
+                        <div className="relative">
+                          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
+                          <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value.toLowerCase())}
+                            placeholder={language === "Turkish" ? "Hisse, coin veya kategori ara..." : "Search assets, symbols or categories..."}
+                            className="w-full bg-white/[0.06] backdrop-blur-md rounded-2xl py-4 pl-12 pr-4 text-[14px] focus:outline-none focus:bg-white/[0.08] transition-all font-medium placeholder:text-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+                          />
+                          {searchQuery && (
+                            <button onClick={() => setSearchQuery("")} className="absolute right-4 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-colors">
+                              <X className="w-4 h-4" />
+                            </button>
                           )}
                         </div>
-                      </div>
-                    ) : (
-                      <>
-                        {/* Compact Top Movers */}
-                        <div>
-                          <h3 className="text-[11px] font-black uppercase tracking-widest text-[var(--mp-text-secondary)] mb-3 px-1">{language === "Turkish" ? "Günün Özeti" : "Market Overview"}</h3>
-                          <motion.div className="flex flex-col gap-2"
-                            initial="hidden"
-                            animate="visible"
-                            variants={{ visible: { transition: { staggerChildren: 0.1 } } }}
-                          >
-                            {[...ASSETS].sort((a,b) => parseFloat(b.change) - parseFloat(a.change)).slice(0,1).map((asset) => (
-                               <motion.div key={`gainer-${asset.id}`}
-                                 variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 400, damping: 30 } } }}
-                                 onClick={() => { setSelectedAssetId(asset.id); setActiveTab("dashboard"); }}
-                                 className="mp-glass-card rounded-[18px] p-4 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors border-l-2 border-l-[var(--mp-cyan)]"
-                               >
-                                 <div className="flex items-center gap-4">
-                                   <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/5 shadow-inner flex items-center justify-center"><TrendingUp className="w-5 h-5" stroke="url(#mpIconGrad)" /></div>
-                                   <div><div className="font-bold text-[14px] text-foreground tracking-wider">{asset.symbol}</div><div className="text-[10px] text-[var(--mp-text-secondary)] font-bold uppercase tracking-wider mt-0.5">{language === "Turkish" ? "En Yüksek Kazanç" : "Top Gainer"}</div></div>
-                                 </div>
-                                 <div className="text-right">
-                                   <div className="text-[15px] font-black text-foreground mb-0.5">${asset.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
-                                   <div className="text-[11px] font-black mp-positive-badge px-2.5 py-0.5 rounded-full inline-block">{asset.change}</div>
-                                 </div>
-                               </motion.div>
-                            ))}
-                            {[...ASSETS].sort((a,b) => parseFloat(a.change) - parseFloat(b.change)).slice(0,1).map((asset) => (
-                               <motion.div key={`loser-${asset.id}`}
-                                 variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 400, damping: 30 } } }}
-                                 onClick={() => { setSelectedAssetId(asset.id); setActiveTab("dashboard"); }}
-                                 className="mp-glass-card rounded-[18px] p-4 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors border-l-2 border-l-[#FF3B3B]"
-                               >
-                                 <div className="flex items-center gap-4">
-                                   <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/5 shadow-inner flex items-center justify-center"><TrendingDown className="w-5 h-5 text-[var(--mp-red)]" /></div>
-                                   <div><div className="font-bold text-[14px] text-foreground tracking-wider">{asset.symbol}</div><div className="text-[10px] text-[var(--mp-text-secondary)] font-bold uppercase tracking-wider mt-0.5">{language === "Turkish" ? "En Yüksek Düşüş" : "Top Loser"}</div></div>
-                                 </div>
-                                 <div className="text-right">
-                                   <div className="text-[15px] font-black text-foreground mb-0.5">${asset.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
-                                   <div className="text-[11px] font-black mp-negative-badge px-2.5 py-0.5 rounded-full inline-block">{asset.change}</div>
-                                 </div>
-                               </motion.div>
-                            ))}
-                          </motion.div>
-                        </div>
 
-                        {/* Popular Categories */}
-                        <div>
-                          <h3 className="text-[11px] font-black uppercase tracking-widest text-[var(--mp-text-secondary)] mb-4 px-1">{language === "Turkish" ? "Kategoriler" : "Discover"}</h3>
-                          <motion.div className="grid grid-cols-2 gap-3"
-                            initial="hidden"
-                            animate="visible"
-                            variants={{ visible: { transition: { staggerChildren: 0.08 } } }}
-                          >
-                            {["Crypto", "Stocks", "Commodities"].map((category) => {
-                              const categoryLabel = category === "Stocks" ? t.stocks : category === "Commodities" ? t.commodities : t.crypto;
-                              return (
-                                <motion.div
-                                  key={category}
-                                  variants={{ hidden: { opacity: 0, scale: 0.9 }, visible: { opacity: 1, scale: 1, transition: { type: "spring", stiffness: 400, damping: 30 } } }}
-                                  onClick={() => setSearchQuery(category.toLowerCase())}
-                                  className="bg-black/40 backdrop-blur-2xl border border-transparent rounded-[28px] p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-black/60 transition-all group relative overflow-hidden"
-                                  style={{ boxShadow: "inset 0 1px 1px rgba(255,255,255,0.08), 0 8px 32px rgba(0,0,0,0.4)" }}
-                                >
-                                  <div className="absolute inset-0 bg-gradient-to-tr from-white/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                                  <div className="text-[17px] font-black text-foreground tracking-widest transition-colors relative z-10 drop-shadow-md">{categoryLabel}</div>
-                                  <div className="text-[9px] font-black text-white/60 uppercase mt-3 bg-black/40 backdrop-blur-sm border border-white/10 px-3.5 py-1.5 rounded-full group-hover:bg-white/10 group-hover:text-white transition-all relative z-10" style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)" }}>Explore</div>
-                                </motion.div>
-                              );
-                            })}
-                          </motion.div>
-                        </div>
-                      </>
-                    )}
-                  </div>
+                        {searchQuery.length > 0 ? (
+                          <div>
+                            <h3 className="text-[11px] font-black uppercase tracking-widest text-[var(--mp-text-secondary)] mb-4 px-1">{language === "Turkish" ? "Arama Sonuçları" : "Search Results"}</h3>
+                            <div className="flex flex-col bg-white/[0.06] backdrop-blur-md rounded-[28px] overflow-hidden shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                              {isSearching ? (
+                                <div className="text-center text-white/40 py-12 text-[14px] font-medium animate-pulse">{language === "Turkish" ? "Küresel piyasalar aranıyor..." : "Searching global markets..."}</div>
+                              ) : searchResults.length > 0 ? (
+                                searchResults.map((quote) => {
+                                  const isWatchlisted = watchlistAssets.includes(quote.symbol);
+                                  return (
+                                    <div key={quote.symbol} className="flex items-center justify-between p-4 hover:bg-white/[0.05] transition-colors cursor-pointer border-b border-white/[0.04] last:border-0 group">
+                                      <div className="flex items-center gap-4 flex-1" onClick={() => handleAddExternalAsset(quote)}>
+                                        <div className="w-11 h-11 rounded-[14px] bg-white/[0.04] flex items-center justify-center font-black text-[14px] border border-white/[0.08] uppercase">{quote.symbol[0]}</div>
+                                        <div>
+                                          <div className="text-[16px] font-bold text-foreground mb-0.5 max-w-[180px] truncate">{quote.shortname || quote.longname || quote.symbol}</div>
+                                          <div className="text-[11px] text-[var(--mp-text-secondary)] font-bold uppercase tracking-widest">{quote.symbol} {quote.exchDisp ? `· ${quote.exchDisp}` : ''}</div>
+                                        </div>
+                                      </div>
+                                      <button onClick={(e) => { e.stopPropagation(); handleAddExternalAsset(quote); }} className={`p-2.5 rounded-xl transition-all ${isWatchlisted ? "bg-[var(--mp-cyan)]/10 border border-[var(--mp-cyan)]/30 text-[var(--mp-cyan)]" : "bg-white/5 border border-white/5 text-white/40 hover:text-white hover:bg-white/10"}`}>
+                                        <Plus className={`w-4 h-4 transition-transform duration-300 ${isWatchlisted ? "rotate-45" : ""}`} strokeWidth={3} />
+                                      </button>
+                                    </div>
+                                  );
+                                })
+                              ) : (
+                                <div className="text-center text-white/40 py-12 text-[14px] font-medium">{language === "Turkish" ? "Sonuç bulunamadı." : "No results found."}</div>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            {/* Market selector — single button + popup */}
+                            <div className="relative">
+                              <button
+                                onClick={() => { setShowMarketPicker(v => !v); setMarketPickerSearch(""); }}
+                                className="px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wide transition-all backdrop-blur-md bg-white/[0.06] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] flex items-center gap-1.5"
+                              >
+                                {MARKETS.find(m => m.id === selectedMarket)?.label ?? "All Markets"}
+                                <span className="text-white/40">▾</span>
+                              </button>
+                              {showMarketPicker && (
+                                <div className="absolute top-full left-0 mt-2 z-50 bg-[#0a0c10]/95 backdrop-blur-xl rounded-2xl p-3 w-52 shadow-2xl border border-white/[0.08]"
+                                  style={{ maxHeight: 280, overflowY: "auto" }}>
+                                  <input
+                                    autoFocus
+                                    value={marketPickerSearch}
+                                    onChange={e => setMarketPickerSearch(e.target.value)}
+                                    placeholder="Crypto, NASDAQ, BIST..."
+                                    className="w-full bg-white/[0.08] rounded-xl px-3 py-2 text-[11px] font-medium placeholder:text-white/30 focus:outline-none mb-2"
+                                  />
+                                  {MARKETS.filter(m => m.label.toLowerCase().includes(marketPickerSearch.toLowerCase())).map(m => (
+                                    <button key={m.id} onClick={() => { setSelectedMarket(m.id); setShowMarketPicker(false); }}
+                                      className={`w-full text-left px-3 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wide transition-all mb-0.5 ${selectedMarket === m.id ? "bg-white/15 text-white" : "text-white/60 hover:bg-white/[0.07] hover:text-white"}`}>
+                                      {m.label}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Period filter */}
+                            <div className="flex gap-2">
+                              {PERIODS.map((p) => (
+                                <button key={p} onClick={() => setMoversPeriod(p)} className={`flex-1 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wide transition-all backdrop-blur-md ${moversPeriod === p ? "bg-white/15 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]" : "bg-white/[0.06] text-white/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"}`}>{p}</button>
+                              ))}
+                            </div>
+
+                            {/* Top Gainers */}
+                            <div>
+                              <button onClick={() => setGainersExpanded(v => !v)} className="w-full flex items-center justify-between mb-3 px-1">
+                                <div className="flex items-center gap-2">
+                                  <TrendingUp className="w-4 h-4" stroke="url(#mpIconGrad)" />
+                                  <span className="text-[11px] font-black uppercase tracking-widest text-foreground">{language === "Turkish" ? "En Çok Kazananlar" : "Top Gainers"}</span>
+                                  <span className="text-[9px] text-white/30">{moversPeriod}</span>
+                                </div>
+                                <ChevronDown className={`w-4 h-4 text-white/40 transition-transform ${gainersExpanded ? "rotate-180" : ""}`} />
+                              </button>
+                              <div className="flex flex-col gap-2">
+                                {([...(selectedMarket === "All" ? ASSETS : marketAssets)].sort((a,b) => getPeriodChange(b)-getPeriodChange(a)).slice(0, gainersExpanded ? 10 : 1)).map((asset: any, i: number) => {
+                                  const chg = getPeriodChange(asset);
+                                  return (
+                                    <motion.div key={asset.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                                      onClick={() => { setSelectedAssetId(asset.id); setActiveTab("dashboard"); }}
+                                      className="mp-glass-card rounded-[18px] p-4 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors border-l-2 border-l-[var(--mp-cyan)]"
+                                    >
+                                      <div className="flex items-center gap-3">
+                                        <div className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center font-black text-[11px] text-white/40">{i + 1}</div>
+                                        <div><div className="font-bold text-[14px]">{asset.symbol}</div><div className="text-[10px] text-[var(--mp-text-secondary)] tracking-wider">{asset.name}</div></div>
+                                      </div>
+                                      <div className="text-[11px] font-black mp-positive-badge px-2.5 py-0.5 rounded-full">+{Math.abs(chg).toFixed(2)}%</div>
+                                    </motion.div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            {/* Top Losers */}
+                            <div>
+                              <button onClick={() => setLosersExpanded(v => !v)} className="w-full flex items-center justify-between mb-3 px-1">
+                                <div className="flex items-center gap-2">
+                                  <TrendingDown className="w-4 h-4 text-[var(--mp-red)]" />
+                                  <span className="text-[11px] font-black uppercase tracking-widest text-foreground">{language === "Turkish" ? "En Çok Kaybedenler" : "Top Losers"}</span>
+                                  <span className="text-[9px] text-white/30">{moversPeriod}</span>
+                                </div>
+                                <ChevronDown className={`w-4 h-4 text-white/40 transition-transform ${losersExpanded ? "rotate-180" : ""}`} />
+                              </button>
+                              <div className="flex flex-col gap-2">
+                                {([...(selectedMarket === "All" ? ASSETS : marketAssets)].sort((a,b) => getPeriodChange(a)-getPeriodChange(b)).slice(0, losersExpanded ? 10 : 1)).map((asset: any, i: number) => {
+                                  const chg = getPeriodChange(asset);
+                                  return (
+                                    <motion.div key={asset.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                                      onClick={() => { setSelectedAssetId(asset.id); setActiveTab("dashboard"); }}
+                                      className="mp-glass-card rounded-[18px] p-4 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors border-l-2 border-l-[#FF3B3B]"
+                                    >
+                                      <div className="flex items-center gap-3">
+                                        <div className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center font-black text-[11px] text-white/40">{i + 1}</div>
+                                        <div><div className="font-bold text-[14px]">{asset.symbol}</div><div className="text-[10px] text-[var(--mp-text-secondary)] tracking-wider">{asset.name}</div></div>
+                                      </div>
+                                      <div className="text-[11px] font-black mp-negative-badge px-2.5 py-0.5 rounded-full">{chg.toFixed(2)}%</div>
+                                    </motion.div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })()
                 )}
               </motion.div>
             )}

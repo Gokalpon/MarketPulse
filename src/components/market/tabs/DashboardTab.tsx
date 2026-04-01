@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { useCountUpAnimation } from "@/hooks/useCountUpAnimation";
 import {
   TrendingUp, TrendingDown, ChevronDown, ChevronRight,
-  Brain, Edit3, ExternalLink, WifiOff, Plus, X,
+  Brain, Edit3, ExternalLink, WifiOff, Plus, X, Settings,
 } from "lucide-react";
 
 function LiveDot() {
@@ -50,6 +50,8 @@ interface DashboardTabProps {
   activeUserComments: any[];
   setIsMenuOpen: (v: boolean) => void;
   setIsAssetPickerOpen: (v: boolean) => void;
+  currency: string;
+  setCurrency: (c: string) => void;
 }
 
 export function DashboardTab({
@@ -61,7 +63,32 @@ export function DashboardTab({
   chartCrosshair, setChartCrosshair, handleChartTap, openCommentSheet, handlePointClick,
   isAnalyzing, aiAnalysis, generateAIAnalysis, setShowMyComments, activeUserComments,
   setIsMenuOpen, setIsAssetPickerOpen,
+  currency, setCurrency,
 }: DashboardTabProps) {
+  const ALL_CURRENCIES = [
+    { id: "USD", name: "US Dollar", symbol: "$", rate: 1 },
+    { id: "EUR", name: "Euro", symbol: "€", rate: 0.92 },
+    { id: "GBP", name: "British Pound", symbol: "£", rate: 0.79 },
+    { id: "JPY", name: "Japanese Yen", symbol: "¥", rate: 149 },
+    { id: "TRY", name: "Turkish Lira", symbol: "₺", rate: 32 },
+    { id: "CNY", name: "Chinese Yuan", symbol: "¥", rate: 7.24 },
+    { id: "CHF", name: "Swiss Franc", symbol: "Fr", rate: 0.90 },
+    { id: "AUD", name: "Australian Dollar", symbol: "A$", rate: 1.53 },
+    { id: "CAD", name: "Canadian Dollar", symbol: "C$", rate: 1.36 },
+    { id: "KRW", name: "South Korean Won", symbol: "₩", rate: 1340 },
+    { id: "INR", name: "Indian Rupee", symbol: "₹", rate: 83 },
+    { id: "XAU", name: "Gold (oz)", symbol: "oz", rate: 1 / 2035 },
+  ];
+  const ALL_TIMEFRAMES = ["1H","4H","1D","3D","1W","2W","1M","3M","6M","1Y","2Y","5Y","ALL"];
+  const currMeta = ALL_CURRENCIES.find(c => c.id === currency) || ALL_CURRENCIES[0];
+  const { rate, symbol: currSymbol } = currMeta;
+  const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
+  const [currencySearch, setCurrencySearch] = useState("");
+  const [showTfPicker, setShowTfPicker] = useState(false);
+  const [customTimeframes, setCustomTimeframes] = useState<string[]>(() => {
+    try { const s = localStorage.getItem("customTimeframes"); return s ? JSON.parse(s) : ["1H","1D","1W","1M","1Y","ALL"]; } catch { return ["1H","1D","1W","1M","1Y","ALL"]; }
+  });
+  const convertedPrice = livePrice * rate;
   const [chartHeightLevel, setChartHeightLevel] = useState(1); // 0=xs 1=sm 2=md 3=lg
   const [chartWide, setChartWide] = useState(false);
   const [showCommentInput, setShowCommentInput] = useState(false);
@@ -83,6 +110,7 @@ export function DashboardTab({
     duration: 800,
     decimals: 2,
     easingFn: 'easeInOutCubic',
+    formatLocale: false,
   });
   const chartHeightValues = [150, 240, 330, 430];
 
@@ -110,7 +138,7 @@ export function DashboardTab({
   const getY = (v: number) => 8 + (100 - ((v - minVal) / range) * 100) * 0.84;
 
   const getPointDate = (visIdx: number): Date => {
-    const intervalMs: Record<string, number> = { "1H": 5 * 60 * 1000, "1D": 15 * 60 * 1000, "1W": 60 * 60 * 1000, "1M": 24 * 60 * 60 * 1000, "1Y": 7 * 24 * 60 * 60 * 1000, "ALL": 30 * 24 * 60 * 60 * 1000 };
+    const intervalMs: Record<string, number> = { "1H": 5*60*1000, "4H": 30*60*1000, "1D": 15*60*1000, "3D": 60*60*1000, "1W": 60*60*1000, "2W": 24*60*60*1000, "1M": 24*60*60*1000, "3M": 24*60*60*1000, "6M": 7*24*60*60*1000, "1Y": 7*24*60*60*1000, "2Y": 30*24*60*60*1000, "5Y": 30*24*60*60*1000, "ALL": 30*24*60*60*1000 };
     const ms = intervalMs[timeframe] || intervalMs["1D"];
     const now = new Date();
     const actualIdx = zoomStart + visIdx;
@@ -151,10 +179,7 @@ export function DashboardTab({
     const count = visibleData.length;
     if (count < 2) return [];
     const now = new Date();
-    const intervalMs: Record<string, number> = {
-      "1H": 5 * 60 * 1000, "1D": 15 * 60 * 1000, "1W": 60 * 60 * 1000,
-      "1M": 24 * 60 * 60 * 1000, "1Y": 7 * 24 * 60 * 60 * 1000, "ALL": 30 * 24 * 60 * 60 * 1000,
-    };
+    const intervalMs: Record<string, number> = { "1H": 5*60*1000, "4H": 30*60*1000, "1D": 15*60*1000, "3D": 60*60*1000, "1W": 60*60*1000, "2W": 24*60*60*1000, "1M": 24*60*60*1000, "3M": 24*60*60*1000, "6M": 7*24*60*60*1000, "1Y": 7*24*60*60*1000, "2Y": 30*24*60*60*1000, "5Y": 30*24*60*60*1000, "ALL": 30*24*60*60*1000 };
     const ms = intervalMs[timeframe] || intervalMs["1D"];
     return Array.from({ length: 5 }, (_, li) => {
       const idx = Math.round(li * (count - 1) / 4);
@@ -162,10 +187,11 @@ export function DashboardTab({
       const totalLen = activeData.length;
       const pointTime = new Date(now.getTime() - (totalLen - 1 - actualIdx) * ms);
       let label = "";
-      if (timeframe === "1H" || timeframe === "1D") label = pointTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-      else if (timeframe === "1W") label = pointTime.toLocaleDateString([], { weekday: "short" });
-      else if (timeframe === "1M") label = pointTime.toLocaleDateString([], { month: "short", day: "numeric" });
-      else if (timeframe === "1Y") label = pointTime.toLocaleDateString([], { month: "short" });
+      if (timeframe === "1H" || timeframe === "4H") label = pointTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      else if (timeframe === "1D") label = pointTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      else if (timeframe === "3D" || timeframe === "1W" || timeframe === "2W") label = pointTime.toLocaleDateString([], { weekday: "short", day: "numeric" });
+      else if (timeframe === "1M" || timeframe === "3M") label = pointTime.toLocaleDateString([], { month: "short", day: "numeric" });
+      else if (timeframe === "6M" || timeframe === "1Y" || timeframe === "2Y") label = pointTime.toLocaleDateString([], { month: "short", year: "2-digit" });
       else label = pointTime.toLocaleDateString([], { year: "numeric" });
       return { x: 4 + (idx / (count - 1)) * 92, label };
     });
@@ -200,14 +226,40 @@ export function DashboardTab({
         <div className={`mp-glass-card ${chartWide ? "rounded-none" : "rounded-[32px]"} p-6 relative shadow-lg transition-all duration-500`}>
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
-              <div className="text-[var(--mp-text-secondary)] text-[11px] font-semibold tracking-[0.15em] mb-1.5">{activeAsset.symbol}</div>
+              <div className="flex items-center gap-2 mb-1.5 relative">
+                <span className="text-[var(--mp-text-secondary)] text-[11px] font-semibold tracking-[0.15em]">{activeAsset.symbol}</span>
+                <button onClick={() => { setCurrency("USD"); setShowCurrencyPicker(false); }}
+                  className={`px-2 py-0.5 text-[9px] font-black uppercase rounded transition-all ${currency === "USD" ? "bg-white/20 text-white" : "bg-white/[0.06] text-white/40 hover:text-white/70"}`}>
+                  USD
+                </button>
+                <button onClick={() => setShowCurrencyPicker(v => !v)}
+                  className={`px-2 py-0.5 text-[9px] font-black uppercase rounded transition-all ${currency !== "USD" ? "bg-white/20 text-white" : "bg-white/[0.06] text-white/40 hover:text-white/70"}`}>
+                  {currency !== "USD" ? currency : "···"}
+                </button>
+                {showCurrencyPicker && (
+                  <div className="absolute top-full left-0 mt-2 z-50 bg-[#0a0c10]/95 backdrop-blur-xl rounded-2xl p-3 w-52 shadow-2xl border border-white/10">
+                    <input autoFocus value={currencySearch} onChange={e => setCurrencySearch(e.target.value)}
+                      placeholder={language === "Turkish" ? "Para birimi ara..." : "Search currency..."}
+                      className="w-full bg-white/[0.06] text-white text-[11px] rounded-xl px-3 py-2 outline-none placeholder:text-white/30 mb-2" />
+                    <div className="flex flex-col gap-0.5 max-h-44 overflow-y-auto">
+                      {ALL_CURRENCIES.filter(c => c.id.toLowerCase().includes(currencySearch.toLowerCase()) || c.name.toLowerCase().includes(currencySearch.toLowerCase())).map(c => (
+                        <button key={c.id} onClick={() => { setCurrency(c.id); setShowCurrencyPicker(false); setCurrencySearch(""); }}
+                          className={`flex items-center justify-between px-3 py-2 rounded-xl text-[11px] transition-all text-left ${currency === c.id ? "bg-white/15 text-white" : "text-white/60 hover:bg-white/10 hover:text-white"}`}>
+                          <span className="font-black">{c.id}</span>
+                          <span className="text-white/40 text-[10px]">{c.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
               <motion.div
                 className="font-price text-foreground text-[clamp(30px,9vw,38px)] font-bold leading-none mb-4 inline-block pr-2"
                 initial={{ opacity: 0.8 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.3 }}
               >
-                ${animatedPrice}
+                {currSymbol}{(parseFloat(animatedPrice) * rate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </motion.div>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                 <div className={`px-2 py-1 rounded-lg flex items-center gap-1 font-bold text-[11px] ${liveChange.startsWith("+") ? "mp-positive-badge" : liveChange.startsWith("-") ? "mp-negative-badge" : "bg-white/10 text-foreground"}`}>
@@ -265,40 +317,7 @@ export function DashboardTab({
                   <path d={pathD} fill="none" stroke="url(#lineGrad)" strokeWidth="2.2" vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" />
                   {chartCrosshair && <line x1={chartCrosshair.x} y1="0" x2={chartCrosshair.x} y2="100" stroke="white" strokeWidth="0.5" strokeDasharray="2,2" vectorEffect="non-scaling-stroke" opacity="0.3" />}
 
-                  {/* NEWS / CONSENSUS dots — pixel-perfect on the chart line */}
-                  {(showNewsBubbles || showAIConsensus) && activeTranslations.map((point: any) => {
-                    const isNews = point.type === "news";
-                    if (isNews && !showNewsBubbles) return null;
-                    if (!isNews && !showAIConsensus) return null;
-                    if (selectedPoint?.idx === point.idx) return null;
-                    const vi = point.idx - zoomStart;
-                    if (vi < 0 || vi >= visibleData.length) return null;
-                    const xi = Math.min(vi, visibleData.length - 1);
-                    const cx = getX(xi);
-                    const cy = getY(visibleData[xi]);
-                    return (
-                      <circle key={`dot-${point.idx}`} cx={cx} cy={cy} r="2" fill={isNews ? "url(#dotGrad)" : "white"} />
-                    );
-                  })}
-
-                  {/* SENTIMENT CLUSTER dots — pixel-perfect on the chart line */}
-                  {sentimentClusters.map((cluster, ci) => {
-                    if (selectedPoint?.avgIdx === cluster.avgIdx) return null;
-                    const vi = cluster.avgIdx - zoomStart;
-                    if (vi < 0 || vi >= visibleData.length) return null;
-                    const xi = Math.max(0, Math.min(visibleData.length - 1, vi));
-                    const cx = getX(xi);
-                    const cy = getY(visibleData[xi] ?? cluster.avgPrice);
-                    const r = cluster.count >= 5 ? 2.7 : cluster.count >= 2 ? 2.36 : 2;
-                    return (
-                      <g key={`dot-cluster-${ci}`}>
-                        <circle cx={cx} cy={cy} r={r} fill="#B24BF3" />
-                        {cluster.count > 1 && (
-                          <text x={cx} y={cy + 0.5} textAnchor="middle" dominantBaseline="middle" fill="white" fontSize="2.1" fontWeight="900">{cluster.count}</text>
-                        )}
-                      </g>
-                    );
-                  })}
+                  {/* dots rendered as CSS divs outside SVG for perfect circles */}
 
                   {/* Live terminal dot */}
                   {visibleData.length > 1 && (() => {
@@ -313,13 +332,67 @@ export function DashboardTab({
                   })()}
                 </svg>
 
+                {/* NEWS / CONSENSUS dots — CSS div, her zaman mükemmel yuvarlak */}
+                {(showNewsBubbles || showAIConsensus) && activeTranslations.map((point: any) => {
+                  const isNews = point.type === "news";
+                  if (isNews && !showNewsBubbles) return null;
+                  if (!isNews && !showAIConsensus) return null;
+                  if (selectedPoint?.idx === point.idx) return null;
+                  const vi = point.idx - zoomStart;
+                  if (vi < 0 || vi >= visibleData.length) return null;
+                  const xi = Math.min(vi, visibleData.length - 1);
+                  return (
+                    <div
+                      key={`dot-css-${point.idx}`}
+                      className="absolute pointer-events-none z-10"
+                      style={{
+                        left: `${getX(xi)}%`,
+                        top: `${getY(visibleData[xi])}%`,
+                        transform: "translate(-50%, -50%)",
+                        width: 14, height: 14,
+                        borderRadius: "50%",
+                        background: isNews ? "linear-gradient(135deg, #00FFFF, #00FF87)" : "white",
+                        flexShrink: 0,
+                      }}
+                    />
+                  );
+                })}
+
+                {/* SENTIMENT CLUSTER dots — CSS div, her zaman mükemmel yuvarlak */}
+                {sentimentClusters.map((cluster, ci) => {
+                  if (selectedPoint?.avgIdx === cluster.avgIdx) return null;
+                  const vi = cluster.avgIdx - zoomStart;
+                  if (vi < 0 || vi >= visibleData.length) return null;
+                  const xi = Math.max(0, Math.min(visibleData.length - 1, vi));
+                  const size = cluster.count >= 5 ? 20 : cluster.count >= 2 ? 18 : 14;
+                  return (
+                    <div
+                      key={`dot-cluster-css-${ci}`}
+                      className="absolute pointer-events-none z-10 flex items-center justify-center"
+                      style={{
+                        left: `${getX(xi)}%`,
+                        top: `${getY(visibleData[xi] ?? cluster.avgPrice)}%`,
+                        transform: "translate(-50%, -50%)",
+                        width: size, height: size,
+                        borderRadius: "50%",
+                        background: "#B24BF3",
+                        flexShrink: 0,
+                      }}
+                    >
+                      {cluster.count > 1 && (
+                        <span style={{ fontSize: 4, fontWeight: 900, color: "white", lineHeight: 1 }}>{cluster.count}</span>
+                      )}
+                    </div>
+                  );
+                })}
+
                 {/* Crosshair */}
                 {chartCrosshair && (
                   <div className="absolute z-40" style={{ left: `${chartCrosshair.x}%`, top: `${chartCrosshair.y}%`, transform: "translate(-50%, -50%)" }}>
                     <div className="w-4 h-4 rounded-full bg-foreground border-2 border-[var(--mp-cyan)] shadow-[0_0_15px_rgba(0,255,255,0.5)]" />
                     <motion.div initial={{ opacity: 0, y: 5, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="absolute top-6 whitespace-nowrap flex flex-col items-center gap-2" style={chartCrosshair.x > 65 ? { right: 0 } : chartCrosshair.x < 35 ? { left: 0 } : { left: "50%", transform: "translateX(-50%)" }}>
                       <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl px-3 py-1.5">
-                        <div className="text-[14px] font-bold text-foreground">${chartCrosshair.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                        <div className="text-[14px] font-bold text-foreground">{currSymbol}{(chartCrosshair.price * rate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                       </div>
                       <button onClick={(e) => { e.stopPropagation(); openCommentSheet(); }} className="flex items-center gap-1.5 mp-gradient-badge text-background font-black text-[10px] uppercase tracking-wider px-4 py-2 rounded-xl shadow-[0_0_20px_rgba(0,255,255,0.3)] active:scale-95 transition-transform">
                         <Edit3 className="w-3 h-3" strokeWidth={3} />
@@ -352,21 +425,21 @@ export function DashboardTab({
                           animate={{ scale: 1, opacity: 1 }}
                           transition={{ type: "spring", stiffness: 400, damping: 28 }}
                           className={`w-21 h-21 rounded-full shrink-0 flex items-center justify-center overflow-hidden cursor-pointer ${isNews ? "mp-gradient-badge shadow-[0_10px_30px_rgba(0,255,255,0.4)]" : "bg-foreground shadow-[0_10px_30px_rgba(255,255,255,0.3)]"}`}
-                          style={{ width: 84, height: 84 }}
+                          style={{ width: 110, height: 110 }}
                           onClick={(e) => { e.stopPropagation(); handlePointClick(point); }}
                         >
                           <div className="p-2 text-center flex flex-col items-center justify-center h-full w-full relative">
-                            <div className={`text-[7px] font-black uppercase tracking-wider mb-0.5 ${isNews ? "text-background opacity-70" : point.sentiment === "Positive" ? "text-[#00C805]" : point.sentiment === "Negative" ? "text-[var(--mp-red)]" : "text-[#0088FF]"}`}>
+                            <div className={`text-[9px] font-black uppercase tracking-wider mb-0.5 ${isNews ? "text-background opacity-70" : point.sentiment === "Positive" ? "text-[#00C805]" : point.sentiment === "Negative" ? "text-[var(--mp-red)]" : "text-[#0088FF]"}`}>
                               {isNews ? t.newsAlert : point.sentiment}
                             </div>
-                            <div className={`text-[8px] font-bold leading-snug line-clamp-2 mb-1 ${isNews ? "text-background" : "text-[#0A0C0E]"}`}>{point.translation}</div>
+                            <div className={`text-[11px] font-bold leading-snug line-clamp-2 mb-1 ${isNews ? "text-background" : "text-[#0A0C0E]"}`}>{point.translation}</div>
                             {isNews ? (
                               <button
                                 onClick={(e) => { e.stopPropagation(); window.open('https://www.reuters.com/business/finance', '_blank', 'noopener,noreferrer'); }}
                                 className="bg-background/20 hover:bg-background/30 px-2 py-1 rounded flex items-center gap-1.5 transition-colors border border-background/20"
                               >
                                 <ExternalLink className="w-2.5 h-2.5 text-background" />
-                                <span className="text-[7px] font-black uppercase text-background tracking-wider">Source</span>
+                                <span className="text-[9px] font-black uppercase text-background tracking-wider">Source</span>
                               </button>
                             ) : (
                               <div className={`absolute bottom-2 ${isNews ? "text-background/50" : "text-black/30"}`}><ChevronRight className="w-3 h-3 rotate-90" strokeWidth={3} /></div>
@@ -404,12 +477,12 @@ export function DashboardTab({
                           animate={{ scale: 1, opacity: 1 }}
                           transition={{ type: "spring", stiffness: 400, damping: 28 }}
                           className="mp-gradient-badge-purple rounded-full shrink-0 flex items-center justify-center overflow-hidden cursor-pointer shadow-[0_10px_30px_rgba(178,75,243,0.6)]"
-                          style={{ width: 84, height: 84 }}
+                          style={{ width: 110, height: 110 }}
                           onClick={(e) => { e.stopPropagation(); handlePointClick(cluster); }}
                         >
                           <div className="p-2 text-center flex flex-col items-center justify-center h-full w-full relative">
-                            <div className="text-[7px] font-black uppercase tracking-wider text-white mb-0.5">{cluster.sentiment}</div>
-                            <div className="text-[8px] font-bold leading-snug line-clamp-2 text-white mb-1">{cluster.translation || "Community sentiment"}</div>
+                            <div className="text-[9px] font-black uppercase tracking-wider text-white mb-0.5">{cluster.sentiment}</div>
+                            <div className="text-[11px] font-bold leading-snug line-clamp-2 text-white mb-1">{cluster.translation || "Community sentiment"}</div>
                             <div className="absolute bottom-2 text-white/50"><ChevronDown className="w-3 h-3" strokeWidth={3} /></div>
                           </div>
                         </motion.div>
@@ -428,9 +501,10 @@ export function DashboardTab({
               {/* Price Scale */}
               <div className="w-12 flex flex-col justify-between py-[8%] pointer-events-none flex-shrink-0">
                 {[0, 0.25, 0.5, 0.75, 1].map((pct) => {
-                  const price = maxVal - pct * range;
-                  const formatted = price >= 10000 ? `${(price/1000).toFixed(0)}k` : price >= 1000 ? `${(price/1000).toFixed(1)}k` : price >= 1 ? price.toFixed(price >= 100 ? 0 : 2) : price.toFixed(4);
-                  return <div key={pct} className="text-[7px] text-white/20 font-mono text-right leading-none">{formatted}</div>;
+                  const rawPrice = maxVal - pct * range;
+                  const p = rawPrice * rate;
+                  const formatted = p >= 100000 ? `${(p/1000).toFixed(0)}k` : p >= 10000 ? `${(p/1000).toFixed(1)}k` : p >= 1000 ? `${(p/1000).toFixed(1)}k` : p >= 1 ? p.toFixed(p >= 100 ? 0 : 2) : p.toFixed(4);
+                  return <div key={pct} className="text-[7px] text-white/20 font-mono text-right leading-none">{currSymbol}{formatted}</div>;
                 })}
               </div>
             </div>
@@ -453,19 +527,41 @@ export function DashboardTab({
 
       {/* Controls */}
       <div className="px-6 mt-6 flex flex-col gap-4 w-full">
-        <div className="flex items-center justify-between w-full">
-          {["1H", "1D", "1W", "1M", "1Y", "ALL"].map((tf) => (
-            <button key={tf} onClick={() => setTimeframe(tf)} className={`flex-1 mx-1 py-1.5 rounded-lg text-[12px] font-bold transition-all text-center ${timeframe === tf ? "bg-foreground text-background" : "text-[var(--mp-text-secondary)] hover:text-foreground bg-white/5"}`}>{tf}</button>
+        <div className="flex items-center gap-1 w-full relative">
+          {customTimeframes.map((tf) => (
+            <button key={tf} onClick={() => setTimeframe(tf)} className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold transition-all text-center ${timeframe === tf ? "bg-foreground text-background" : "text-[var(--mp-text-secondary)] hover:text-foreground bg-white/5"}`}>{tf}</button>
           ))}
+          <button onClick={() => setShowTfPicker(v => !v)} className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg bg-white/[0.06] text-white/40 hover:text-white/80 transition-all ml-1">
+            <Settings className="w-3.5 h-3.5" />
+          </button>
+          {showTfPicker && (
+            <div className="absolute top-full right-0 mt-2 z-50 bg-[#0a0c10]/95 backdrop-blur-xl rounded-2xl p-4 w-64 shadow-2xl border border-white/10">
+              <div className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-3">{language === "Turkish" ? "Gösterilecek zaman aralıkları" : "Visible timeframes"}</div>
+              <div className="flex flex-wrap gap-2">
+                {ALL_TIMEFRAMES.map(tf => {
+                  const active = customTimeframes.includes(tf);
+                  return (
+                    <button key={tf} onClick={() => {
+                      const next = active ? customTimeframes.filter(x => x !== tf) : [...customTimeframes, tf].sort((a,b) => ALL_TIMEFRAMES.indexOf(a)-ALL_TIMEFRAMES.indexOf(b));
+                      if (next.length === 0) return;
+                      setCustomTimeframes(next);
+                      localStorage.setItem("customTimeframes", JSON.stringify(next));
+                      if (!next.includes(timeframe)) setTimeframe(next[0]);
+                    }} className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${active ? "bg-white/20 text-white" : "bg-white/[0.05] text-white/30 hover:text-white/60"}`}>{tf}</button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
         <div className="flex justify-center gap-2">
-          <button onClick={() => setShowNewsBubbles(!showNewsBubbles)} className={`flex-1 px-1 py-2 rounded-xl text-[7.5px] font-black uppercase tracking-tight whitespace-nowrap transition-all border ${showNewsBubbles ? "bg-foreground text-background border-foreground" : "bg-white/5 text-white/40 border-white/10"}`}>
+          <button onClick={() => setShowNewsBubbles(!showNewsBubbles)} className={`flex-1 px-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wide whitespace-nowrap transition-all border ${showNewsBubbles ? "bg-foreground text-background border-foreground" : "bg-white/5 text-white/60 border-white/10"}`}>
             {showNewsBubbles ? t.hideNews : t.showNews}
           </button>
-          <button onClick={() => setShowAIConsensus(!showAIConsensus)} className={`flex-1 px-1 py-2 rounded-xl text-[7.5px] font-black uppercase tracking-tight whitespace-nowrap transition-all border ${showAIConsensus ? "bg-foreground text-background border-foreground" : "bg-white/5 text-white/40 border-white/10"}`}>
+          <button onClick={() => setShowAIConsensus(!showAIConsensus)} className={`flex-1 px-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wide whitespace-nowrap transition-all border ${showAIConsensus ? "bg-foreground text-background border-foreground" : "bg-white/5 text-white/60 border-white/10"}`}>
             {showAIConsensus ? t.hideConsensus : t.showConsensus}
           </button>
-          <button onClick={() => setShowMyComments(true)} className={`flex-1 px-1 py-2 rounded-xl text-[7.5px] font-black uppercase tracking-tight whitespace-nowrap transition-all border ${activeUserComments.length > 0 ? "mp-gradient-badge-purple text-background border-transparent shadow-[0_0_15px_rgba(178,75,243,0.3)]" : "bg-white/5 text-white/40 border-white/10"}`}>
+          <button onClick={() => setShowMyComments(true)} className={`flex-1 px-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wide whitespace-nowrap transition-all border ${activeUserComments.length > 0 ? "mp-gradient-badge-purple text-white border-transparent shadow-[0_0_15px_rgba(178,75,243,0.3)]" : "bg-white/5 text-white/60 border-white/10"}`}>
             {language === "Turkish" ? "Yorumlarım" : "My Comments"}
           </button>
         </div>
@@ -474,7 +570,7 @@ export function DashboardTab({
         <motion.div layout className="overflow-hidden">
           <button
             onClick={() => { setShowCommentInput(v => !v); setCommentPriceInput(""); }}
-            className={`w-full py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border flex items-center justify-center gap-2 ${showCommentInput ? "bg-white/10 text-white border-white/20" : "bg-white/5 text-white/40 border-white/10 hover:text-white/60"}`}
+            className={`w-full py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 backdrop-blur-md ${showCommentInput ? "bg-white/10 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]" : "bg-white/[0.06] text-white/50 hover:text-white/70 hover:bg-white/[0.09] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"}`}
           >
             {showCommentInput ? <X className="w-3 h-3" strokeWidth={3} /> : <Plus className="w-3 h-3" strokeWidth={3} />}
             {language === "Turkish" ? "Yorum Ekle" : "Add Comment"}
@@ -648,13 +744,13 @@ export function DashboardTab({
         </motion.div>
 
         {/* AI Analysis */}
-        <div className="mt-4 bg-black/30 backdrop-blur-xl rounded-2xl p-4 border border-white/10">
+        <div className="mt-4 rounded-2xl p-4 backdrop-blur-md bg-white/[0.06] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <Brain className="w-4 h-4 text-white/40" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-white/30">{t.aiMarketPulse}</span>
+              <Brain className="w-4 h-4" style={{ stroke: "url(#mpIconGrad)" }} />
+              <span className="text-[10px] font-black uppercase tracking-widest text-white/70">{t.aiMarketPulse}</span>
             </div>
-            <button onClick={generateAIAnalysis} disabled={isAnalyzing} className="px-3 py-1.5 rounded-lg bg-black/30 border border-white/10 text-foreground text-[9px] font-black uppercase tracking-wider hover:bg-black/50 transition-all disabled:opacity-50">
+            <button onClick={generateAIAnalysis} disabled={isAnalyzing} className="px-3 py-1.5 rounded-lg bg-white/5 text-white/60 text-[9px] font-black uppercase tracking-wider hover:bg-white/10 hover:text-white transition-all disabled:opacity-50">
               {isAnalyzing ? t.analyzing : t.refreshAnalysis}
             </button>
           </div>

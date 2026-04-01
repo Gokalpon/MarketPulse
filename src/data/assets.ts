@@ -68,6 +68,19 @@ const assetConfigs = [
   { id: "GARAN", name: "Garanti Bank", symbol: "GARAN.IS", category: "Stocks", price: 45.60, change: "+0.9%", isUp: true },
   { id: "SASA", name: "Sasaş", symbol: "SASA.IS", category: "Stocks", price: 89.30, change: "+1.5%", isUp: true },
   { id: "KCHOL", name: "Koç Holding", symbol: "KCHOL.IS", category: "Stocks", price: 92.15, change: "+2.1%", isUp: true },
+  // German stocks
+  { id: "DAX", name: "DAX 40", symbol: "^GDAXI", category: "Stocks", price: 18420.00, change: "+0.6%", isUp: true },
+  { id: "SAP", name: "SAP SE", symbol: "SAP.DE", category: "Stocks", price: 178.30, change: "+1.1%", isUp: true },
+  { id: "BMW", name: "BMW AG", symbol: "BMW.DE", category: "Stocks", price: 102.50, change: "-0.7%", isUp: false },
+  { id: "VOW3", name: "Volkswagen", symbol: "VOW3.DE", category: "Stocks", price: 115.20, change: "-1.3%", isUp: false },
+  // Japanese stocks
+  { id: "NKY", name: "Nikkei 225", symbol: "^N225", category: "Stocks", price: 38950.00, change: "+0.9%", isUp: true },
+  { id: "7203", name: "Toyota Motor", symbol: "7203.T", category: "Stocks", price: 3250.00, change: "+1.4%", isUp: true },
+  { id: "6758", name: "Sony Group", symbol: "6758.T", category: "Stocks", price: 12800.00, change: "+2.2%", isUp: true },
+  { id: "9984", name: "SoftBank Group", symbol: "9984.T", category: "Stocks", price: 7940.00, change: "-0.5%", isUp: false },
+  // Extra commodities
+  { id: "PLATINUM", name: "Platinum", symbol: "XPT/USD", category: "Commodities", price: 915.00, change: "-0.2%", isUp: false },
+  { id: "NATGAS", name: "Natural Gas", symbol: "NG", category: "Commodities", price: 2.35, change: "+3.1%", isUp: true },
 ];
 
 /**
