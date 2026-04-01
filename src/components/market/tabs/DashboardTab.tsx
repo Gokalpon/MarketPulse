@@ -5,6 +5,7 @@ import {
   TrendingUp, TrendingDown, ChevronDown, ChevronRight,
   Brain, Edit3, ExternalLink, WifiOff, Plus, X, Settings,
 } from "lucide-react";
+import { GlowButton } from "@/components/market/GlowButton";
 
 function LiveDot() {
   const colors = ["#3b82f6", "#22c55e", "#ffffff", "#22c55e", "#3b82f6"];
@@ -529,7 +530,7 @@ export function DashboardTab({
       <div className="px-6 mt-6 flex flex-col gap-4 w-full">
         <div className="flex items-center gap-1 w-full relative">
           {customTimeframes.map((tf) => (
-            <button key={tf} onClick={() => setTimeframe(tf)} className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold transition-all text-center ${timeframe === tf ? "bg-foreground text-background" : "text-[var(--mp-text-secondary)] hover:text-foreground bg-white/5"}`}>{tf}</button>
+            <GlowButton key={tf} onClick={() => setTimeframe(tf)} glowSize={60} className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold transition-all text-center ${timeframe === tf ? "bg-foreground text-background" : "text-[var(--mp-text-secondary)] hover:text-foreground bg-white/5"}`}>{tf}</GlowButton>
           ))}
           <button onClick={() => setShowTfPicker(v => !v)} className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg bg-white/[0.06] text-white/40 hover:text-white/80 transition-all ml-1">
             <Settings className="w-3.5 h-3.5" />
@@ -555,26 +556,26 @@ export function DashboardTab({
           )}
         </div>
         <div className="flex justify-center gap-2">
-          <button onClick={() => setShowNewsBubbles(!showNewsBubbles)} className={`flex-1 px-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wide whitespace-nowrap transition-all border ${showNewsBubbles ? "bg-foreground text-background border-foreground" : "bg-white/5 text-white/60 border-white/10"}`}>
+          <GlowButton onClick={() => setShowNewsBubbles(!showNewsBubbles)} className={`flex-1 px-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wide whitespace-nowrap transition-all border ${showNewsBubbles ? "bg-foreground text-background border-foreground" : "bg-white/5 text-white/60 border-white/10"}`}>
             {showNewsBubbles ? t.hideNews : t.showNews}
-          </button>
-          <button onClick={() => setShowAIConsensus(!showAIConsensus)} className={`flex-1 px-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wide whitespace-nowrap transition-all border ${showAIConsensus ? "bg-foreground text-background border-foreground" : "bg-white/5 text-white/60 border-white/10"}`}>
+          </GlowButton>
+          <GlowButton onClick={() => setShowAIConsensus(!showAIConsensus)} className={`flex-1 px-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wide whitespace-nowrap transition-all border ${showAIConsensus ? "bg-foreground text-background border-foreground" : "bg-white/5 text-white/60 border-white/10"}`}>
             {showAIConsensus ? t.hideConsensus : t.showConsensus}
-          </button>
-          <button onClick={() => setShowMyComments(true)} className={`flex-1 px-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wide whitespace-nowrap transition-all border ${activeUserComments.length > 0 ? "mp-gradient-badge-purple text-white border-transparent shadow-[0_0_15px_rgba(178,75,243,0.3)]" : "bg-white/5 text-white/60 border-white/10"}`}>
+          </GlowButton>
+          <GlowButton onClick={() => setShowMyComments(true)} className={`flex-1 px-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wide whitespace-nowrap transition-all border ${activeUserComments.length > 0 ? "mp-gradient-badge-purple text-white border-transparent shadow-[0_0_15px_rgba(178,75,243,0.3)]" : "bg-white/5 text-white/60 border-white/10"}`}>
             {language === "Turkish" ? "Yorumlarım" : "My Comments"}
-          </button>
+          </GlowButton>
         </div>
 
         {/* Yorum Ekle */}
         <motion.div layout className="overflow-hidden">
-          <button
+          <GlowButton
             onClick={() => { setShowCommentInput(v => !v); setCommentPriceInput(""); }}
             className={`w-full py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 backdrop-blur-md ${showCommentInput ? "bg-white/10 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]" : "bg-white/[0.06] text-white/50 hover:text-white/70 hover:bg-white/[0.09] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"}`}
           >
             {showCommentInput ? <X className="w-3 h-3" strokeWidth={3} /> : <Plus className="w-3 h-3" strokeWidth={3} />}
             {language === "Turkish" ? "Yorum Ekle" : "Add Comment"}
-          </button>
+          </GlowButton>
 
           <AnimatePresence>
             {showCommentInput && (

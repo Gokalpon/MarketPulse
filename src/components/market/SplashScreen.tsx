@@ -1,3 +1,4 @@
+import React, { useRef } from "react";
 import { motion } from "motion/react";
 import { APP_ASSETS } from "@/data/assets";
 
@@ -9,6 +10,17 @@ interface SplashScreenProps {
 }
 
 export const SplashScreen = ({ isExitingSplash, isSplashPressed, onSplashClick, t }: SplashScreenProps) => {
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const handleGlow = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const el = btnRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    el.style.setProperty("--gx", `${((e.clientX - rect.left) / rect.width) * 100}%`);
+    el.style.setProperty("--gy", `${((e.clientY - rect.top) / rect.height) * 100}%`);
+    el.style.setProperty("--glow-size", "90px");
+    el.style.setProperty("--glow-color", "rgba(255,255,255,0.09)");
+  };
+
   return (
     <div
       className={`absolute inset-0 z-[400] bg-[var(--mp-bg)] flex flex-col items-center transition-all duration-700 ${
@@ -65,9 +77,11 @@ export const SplashScreen = ({ isExitingSplash, isSplashPressed, onSplashClick, 
         className="absolute bottom-28 inset-x-16 flex justify-center"
       >
         <motion.button
+          ref={btnRef}
           onClick={onSplashClick}
+          onMouseMove={handleGlow}
           whileTap={{ scale: 0.96 }}
-          className="relative w-full py-[22px] rounded-[100px] overflow-hidden text-[13px] font-black uppercase tracking-[0.22em] text-white/70"
+          className="glow-btn relative w-full py-[22px] rounded-[100px] overflow-hidden text-[13px] font-black uppercase tracking-[0.22em] text-white/70"
           style={{
             background: "rgba(0,0,0,0.12)",
             backdropFilter: "blur(40px) saturate(200%)",
@@ -81,6 +95,8 @@ export const SplashScreen = ({ isExitingSplash, isSplashPressed, onSplashClick, 
             ].join(", "),
           }}
         >
+          {/* Cursor glow */}
+          <div className="absolute inset-0 pointer-events-none rounded-[100px]" style={{ background: "radial-gradient(circle 80px at var(--gx,50%) var(--gy,50%), rgba(255,255,255,0.13), transparent 100%)" }} />
           {/* Shimmer sweep */}
           <motion.div
             className="absolute inset-y-0 w-[40%] pointer-events-none"

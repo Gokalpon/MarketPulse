@@ -10,6 +10,7 @@ import { ASSETS, APP_ASSETS, COMMUNITY_POSTS, getMockTranslations, getAssetData 
 import { TRANSLATIONS } from "@/data/translations";
 import { UserComment, DetailedPointData, ChartCrosshair, SentimentCluster, TranslationStrings, NewsOrConsensusPoint } from "@/types";
 import { Sparkline } from "@/components/market/Sparkline";
+import { GlowButton } from "@/components/market/GlowButton";
 import { AssetWheelPicker } from "@/components/market/AssetWheelPicker";
 import { NotifToggle } from "@/components/market/NotifToggle";
 import { SplashScreen } from "@/components/market/SplashScreen";
@@ -759,12 +760,12 @@ export default function MarketPulseApp({ containerHeight }: { containerHeight?: 
 
                 {/* Sub-tab toggle */}
                 <div className="flex bg-white/[0.06] backdrop-blur-md p-1 rounded-xl mb-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-                  <button onClick={() => setMarketsSubTab("watchlist")} className={`flex-1 py-2 text-[11px] font-bold uppercase tracking-widest rounded-lg transition-all ${marketsSubTab === "watchlist" ? "bg-white/15 text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]" : "text-white/50 hover:text-white/70"}`}>
+                  <GlowButton onClick={() => setMarketsSubTab("watchlist")} className={`flex-1 py-2 text-[11px] font-bold uppercase tracking-widest rounded-lg transition-all ${marketsSubTab === "watchlist" ? "bg-white/15 text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]" : "text-white/50 hover:text-white/70"}`}>
                     {t.watchlist || "Watchlist"}
-                  </button>
-                  <button onClick={() => setMarketsSubTab("all")} className={`flex-1 py-2 text-[11px] font-bold uppercase tracking-widest rounded-lg transition-all ${marketsSubTab === "all" ? "bg-white/15 text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]" : "text-white/50 hover:text-white/70"}`}>
+                  </GlowButton>
+                  <GlowButton onClick={() => setMarketsSubTab("all")} className={`flex-1 py-2 text-[11px] font-bold uppercase tracking-widest rounded-lg transition-all ${marketsSubTab === "all" ? "bg-white/15 text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]" : "text-white/50 hover:text-white/70"}`}>
                     {language === "Turkish" ? "Tüm Piyasalar" : "All Markets"}
-                  </button>
+                  </GlowButton>
                 </div>
 
                 {marketsSubTab === "watchlist" ? (
@@ -878,13 +879,13 @@ export default function MarketPulseApp({ containerHeight }: { containerHeight?: 
                           <>
                             {/* Market selector — single button + popup */}
                             <div className="relative">
-                              <button
+                              <GlowButton
                                 onClick={() => { setShowMarketPicker(v => !v); setMarketPickerSearch(""); }}
                                 className="px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wide transition-all backdrop-blur-md bg-white/[0.06] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] flex items-center gap-1.5"
                               >
                                 {MARKETS.find(m => m.id === selectedMarket)?.label ?? "All Markets"}
                                 <span className="text-white/40">▾</span>
-                              </button>
+                              </GlowButton>
                               {showMarketPicker && (
                                 <div className="absolute top-full left-0 mt-2 z-50 bg-[#0a0c10]/95 backdrop-blur-xl rounded-2xl p-3 w-52 shadow-2xl border border-white/[0.08]"
                                   style={{ maxHeight: 280, overflowY: "auto" }}>

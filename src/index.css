@@ -207,6 +207,34 @@
   animation: mp-pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
+/* Cursor-tracking glow button */
+.glow-btn {
+  position: relative;
+  overflow: hidden;
+}
+.glow-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    circle var(--glow-size, 70px) at var(--gx, 50%) var(--gy, 50%),
+    var(--glow-color, rgba(255, 255, 255, 0.10)),
+    transparent 100%
+  );
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+  z-index: 0;
+}
+.glow-btn:hover::before {
+  opacity: 1;
+}
+.glow-btn > * {
+  position: relative;
+  z-index: 1;
+}
+
 /* SVG stroke drawing animation */
 @keyframes mp-draw {
   0% {
