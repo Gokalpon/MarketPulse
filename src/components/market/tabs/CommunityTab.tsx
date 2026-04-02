@@ -15,7 +15,7 @@ const PostCard = React.memo(function PostCard({ post, t, language }: { post: any
     : "Market looks very strong right now. If we break 44k, the rally will accelerate.";
 
   return (
-    <div className="mp-glass-card rounded-[24px] p-5 relative overflow-hidden group">
+    <div className="mp-glass-card glow-btn rounded-[24px] p-5 relative overflow-hidden group" onPointerMove={(e) => { const r = e.currentTarget.getBoundingClientRect(); e.currentTarget.style.setProperty('--gx', `${((e.clientX-r.left)/r.width)*100}%`); e.currentTarget.style.setProperty('--gy', `${((e.clientY-r.top)/r.height)*100}%`); }}>
       {isTranslated && (
         <div className="absolute inset-0 opacity-10 pointer-events-none"
              style={{ 
@@ -73,7 +73,7 @@ const IdeaCard = React.memo(function IdeaCard({ idea, t, language }: { idea: any
     : "Analyzing the current price action, we see a clear breakout pattern forming on the daily chart.";
 
   return (
-    <div className="mp-glass-card rounded-[24px] p-5 relative overflow-hidden group">
+    <div className="mp-glass-card glow-btn rounded-[24px] p-5 relative overflow-hidden group" onPointerMove={(e) => { const r = e.currentTarget.getBoundingClientRect(); e.currentTarget.style.setProperty('--gx', `${((e.clientX-r.left)/r.width)*100}%`); e.currentTarget.style.setProperty('--gy', `${((e.clientY-r.top)/r.height)*100}%`); }}>
       {isTranslated && (
         <div className="absolute inset-0 opacity-10 pointer-events-none"
              style={{ 

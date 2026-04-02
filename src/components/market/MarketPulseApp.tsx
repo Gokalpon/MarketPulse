@@ -46,7 +46,8 @@ function WatchlistCard({ asset, onClick, layout, motionVariants }: {
       <motion.div
         variants={motionVariants}
         onClick={onClick}
-        className="mp-glass-card rounded-2xl p-4 flex items-center justify-between hover:bg-black/30 transition-colors cursor-pointer"
+        className="mp-glass-card glow-btn rounded-2xl p-4 flex items-center justify-between hover:bg-black/30 transition-colors cursor-pointer"
+        onPointerMove={(e) => { const r = e.currentTarget.getBoundingClientRect(); e.currentTarget.style.setProperty('--gx', `${((e.clientX-r.left)/r.width)*100}%`); e.currentTarget.style.setProperty('--gy', `${((e.clientY-r.top)/r.height)*100}%`); }}
       >
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center font-bold text-sm border border-white/[0.05]">{asset.id[0]}</div>
@@ -67,7 +68,8 @@ function WatchlistCard({ asset, onClick, layout, motionVariants }: {
     <motion.div
       variants={motionVariants}
       onClick={onClick}
-      className="mp-glass-card rounded-[20px] p-4 flex flex-col hover:bg-black/30 transition-colors cursor-pointer"
+      className="mp-glass-card glow-btn rounded-[20px] p-4 flex flex-col hover:bg-black/30 transition-colors cursor-pointer"
+      onPointerMove={(e) => { const r = e.currentTarget.getBoundingClientRect(); e.currentTarget.style.setProperty('--gx', `${((e.clientX-r.left)/r.width)*100}%`); e.currentTarget.style.setProperty('--gy', `${((e.clientY-r.top)/r.height)*100}%`); }}
     >
       <div className="flex justify-between items-start mb-3">
         <div className="w-8 h-8 rounded-[10px] bg-white/5 flex items-center justify-center font-bold text-xs border border-white/[0.05]">{asset.id[0]}</div>
