@@ -122,12 +122,10 @@ export const SplashScreen = ({ isExitingSplash, isSplashPressed, onSplashClick, 
           ref={btnRef}
           onClick={onSplashClick}
           whileTap={{ scale: 0.96 }}
-          className="relative w-full py-[22px] rounded-[100px] overflow-hidden text-[13px] font-black uppercase tracking-[0.22em] text-white/70"
+          className="relative w-full py-[22px] rounded-[100px] overflow-hidden text-center text-[13px] font-black uppercase tracking-[0.22em] text-white/70"
           style={{
-            background: "rgba(0,0,0,0.12)",
             backdropFilter: "blur(40px) saturate(200%)",
             WebkitBackdropFilter: "blur(40px) saturate(200%)",
-            border: "1px solid rgba(255,255,255,0.09)",
             boxShadow: [
               "inset 0 1px 0 rgba(255,255,255,0.07)",
               "inset 0 -1px 0 rgba(0,0,0,0.3)",
@@ -136,6 +134,20 @@ export const SplashScreen = ({ isExitingSplash, isSplashPressed, onSplashClick, 
             ].join(", "),
           }}
         >
+          {/* Rotating theme-colored gradient border via CSS @property */}
+          <div
+            className="absolute inset-0 rounded-[100px] animate-border-spin"
+            style={{
+              background: "conic-gradient(from var(--gradient-angle), transparent 0%, transparent 38%, rgba(0,180,160,0.45) 44%, rgba(120,255,220,0.85) 50%, rgba(0,180,160,0.45) 56%, transparent 62%, transparent 100%)",
+            }}
+          />
+          {/* Glass cover — hides gradient everywhere except 1px border strip */}
+          <div
+            className="absolute inset-[1px] rounded-[99px]"
+            style={{
+              background: "rgb(3,5,8)",
+            }}
+          />
           {/* Cursor spotlight glow */}
           <div
             ref={glowRef}
@@ -155,37 +167,8 @@ export const SplashScreen = ({ isExitingSplash, isSplashPressed, onSplashClick, 
               background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.055) 50%, transparent 100%)",
             }}
           />
-          Tap to Start
+          <span className="relative z-10">Tap to Start</span>
         </motion.button>
-
-        {/* Border traveling light — after button in DOM, overflow-hidden clips to pill shape */}
-        <div
-          className="absolute inset-0 rounded-[100px] pointer-events-none overflow-hidden"
-          style={{ zIndex: 20 }}
-        >
-          <div
-            style={{
-              position: "absolute", inset: 0, borderRadius: "100px",
-              overflow: "hidden",
-              WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-              WebkitMaskComposite: "xor",
-              maskComposite: "exclude",
-              padding: "1px",
-            }}
-          >
-            <motion.div
-              className="absolute origin-center"
-              style={{
-                top: "50%", left: "50%",
-                width: "200%", height: "200%",
-                marginTop: "-100%", marginLeft: "-100%",
-                background: "conic-gradient(from 0deg, transparent 0%, transparent 38%, rgba(255,255,255,0.9) 50%, transparent 62%, transparent 100%)",
-              }}
-              animate={{ rotate: 360 }}
-              transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
-            />
-          </div>
-        </div>
       </motion.div>
     </div>
   );
