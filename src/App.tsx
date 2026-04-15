@@ -10,10 +10,6 @@ import React from "react";
 const queryClient = new QueryClient();
 
 const App = () => {
-  React.useEffect(() => {
-    console.log("App mounted successfully");
-  }, []);
-
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>

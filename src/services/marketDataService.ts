@@ -63,8 +63,13 @@ export async function fetchTimeSeries(
   const config = INTERVAL_MAP[timeframe] || INTERVAL_MAP["1D"];
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+    
     const url = `${SERVER_BASE}/chart?symbol=${encodeURIComponent(symbol)}&interval=${config.interval}&range=${config.range}`;
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    
     if (!res.ok) return null;
     const prices: number[] = await res.json();
     if (!Array.isArray(prices) || prices.length === 0) return null;
@@ -90,7 +95,12 @@ export async function fetchQuote(assetId: string): Promise<QuoteData | null> {
 
   const url = `${SERVER_BASE}/quote?symbol=${encodeURIComponent(symbol)}`;
   try {
-    const res = await fetch(url);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout
+    
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    
     if (!res.ok) return null;
     const quote: QuoteData = await res.json();
     if (!quote?.price) return null;

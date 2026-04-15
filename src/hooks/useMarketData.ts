@@ -41,7 +41,10 @@ export function useMarketData({
     queryFn: () => fetchTimeSeries(assetId, timeframe),
     refetchInterval: 60_000,
     staleTime: 60_000,
+    gcTime: 5 * 60_000, // Keep unused data in cache for 5 minutes
     refetchOnWindowFocus: false,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
   });
 
   // Use React Query for quote data
@@ -55,7 +58,10 @@ export function useMarketData({
     queryFn: () => fetchQuote(assetId),
     refetchInterval: 30_000,
     staleTime: 30_000,
+    gcTime: 5 * 60_000, // Keep unused data in cache for 5 minutes
     refetchOnWindowFocus: false,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
   });
 
   const refresh = () => {
