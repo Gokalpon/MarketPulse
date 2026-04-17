@@ -76,6 +76,182 @@ const AI_SUMMARY_TR: Record<string, string> = {
   Neutral:  "Piyasa konsolidasyon aşamasında. Yön kırılımı için bir tetikleyici bekleniyor.",
 };
 
+/* ── SENTIMENT STATS — Premium Expandable Pie Chart ── */
+function SentimentStats({ pos, neu, neg, posPct, neuPct, negPct, score, total, detailedPoint, language }: {
+  pos: number; neu: number; neg: number; posPct: number; neuPct: number; negPct: number;
+  score: number; total: number; detailedPoint: any; language: string;
+}) {
+  const [statsOpen, setStatsOpen] = React.useState(false);
+  const bullishStats = detailedPoint?.categoryStats?.bullish;
+  const neutralStats = detailedPoint?.categoryStats?.neutral;
+  const bearishStats = detailedPoint?.categoryStats?.bearish;
+
+  const R = 52, CX = 64, CY = 64, GAP = 0.5;
+  const slices = [
+    { pct: posPct, color: "url(#grad-bullish)", label: language === "Turkish" ? "BOĞA" : "BULLISH", count: bullishStats?.count ?? pos, avgPrice: bullishStats?.avgPrice, glow: "rgba(0,255,135,0.4)" },
+    { pct: neuPct, color: "rgba(255,255,255,0.5)",  label: language === "Turkish" ? "NÖTR"  : "NEUTRAL",  count: neutralStats?.count ?? neu, avgPrice: neutralStats?.avgPrice, glow: "rgba(255,255,255,0.2)" },
+    { pct: negPct, color: "url(#grad-bearish)", label: language === "Turkish" ? "AYI"  : "BEARISH", count: bearishStats?.count ?? neg, avgPrice: bearishStats?.avgPrice, glow: "rgba(255,59,107,0.4)" },
+  ];
+
+  function polarToXY(cx: number, cy: number, r: number, deg: number) {
+    const rad = ((deg - 90) * Math.PI) / 180;
+    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+  }
+  function arcPath(cx: number, cy: number, r: number, s: number, e: number) {
+    if (Math.abs(e - s) < 0.5) return "";
+    const from = polarToXY(cx, cy, r, s);
+    const to   = polarToXY(cx, cy, r, e);
+    return `M ${cx} ${cy} L ${from.x} ${from.y} A ${r} ${r} 0 ${e - s > 180 ? 1 : 0} 1 ${to.x} ${to.y} Z`;
+  }
+
+  let cursor = 0;
+  const activePaths = slices.map((s) => {
+    const sweep = (s.pct / 100) * (360 - GAP * slices.filter(x => x.pct > 0).length);
+    if (sweep < 0.5) return { path: "", slice: s };
+    const start = cursor;
+    cursor += sweep + GAP;
+    return { path: arcPath(CX, CY, R, start, start + sweep), slice: s };
+  });
+
+  const scoreLabel = score >= 65 ? (language === "Turkish" ? "POZİTİF" : "BULLISH")
+    : score <= 35 ? (language === "Turkish" ? "NEGATİF" : "BEARISH")
+    : (language === "Turkish" ? "NÖTR" : "NEUTRAL");
+  const scoreColor = score >= 65 ? "#00FF87" : score <= 35 ? "#FF3B6B" : "rgba(255,255,255,0.6)";
+  const miniC = 2 * Math.PI * 13;
+
+  return (
+    <div className="rounded-2xl overflow-hidden" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+      <button onClick={() => setStatsOpen(v => !v)}
+        className="w-full flex items-center justify-between px-4 py-3.5 transition-colors hover:bg-white/[0.03]">
+        <div className="flex items-center gap-3">
+          <div className="relative w-8 h-8 flex-shrink-0">
+            <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
+              <defs>
+                <linearGradient id="mini-bullish" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#00FF87" />
+                  <stop offset="100%" stopColor="#00E5CC" />
+                </linearGradient>
+                <linearGradient id="mini-bearish" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#FF3B6B" />
+                  <stop offset="100%" stopColor="#FF1F5E" />
+                </linearGradient>
+              </defs>
+              <circle cx="18" cy="18" r="13.5" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="6" />
+              {total > 0 && <>
+                <circle cx="18" cy="18" r="13.5" fill="none" stroke="url(#mini-bullish)" strokeWidth="6"
+                  strokeDasharray={`${(posPct / 100) * 85} 85`} strokeLinecap="butt" />
+                <circle cx="18" cy="18" r="13.5" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="6"
+                  strokeDasharray={`${(neuPct / 100) * 85} 85`}
+                  strokeDashoffset={`${-((posPct / 100) * 85)}`} strokeLinecap="butt" />
+                <circle cx="18" cy="18" r="13.5" fill="none" stroke="url(#mini-bearish)" strokeWidth="6"
+                  strokeDasharray={`${(negPct / 100) * 85} 85`}
+                  strokeDashoffset={`${-(((posPct + neuPct) / 100) * 85)}`} strokeLinecap="butt" />
+              </>}
+            </svg>
+          </div>
+          <div className="text-left">
+            <div className="text-[11px] font-black uppercase tracking-[0.12em]" style={{ color: "rgba(255,255,255,0.4)" }}>
+              {language === "Turkish" ? "Sentimen Analizi" : "Sentiment Scope"}
+            </div>
+            <div className="text-[10px] font-bold" style={{ color: scoreColor }}>
+              {total > 0 ? `${total} ${language === "Turkish" ? "veri" : "data points"} · ${scoreLabel}` : "No Insights"}
+            </div>
+          </div>
+        </div>
+        <motion.div animate={{ rotate: statsOpen ? 180 : 0 }}>
+          <ChevronDown className="w-4 h-4" style={{ color: "rgba(255,255,255,0.2)" }} />
+        </motion.div>
+      </button>
+
+      <AnimatePresence>
+        {statsOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            className="overflow-hidden"
+          >
+            <div className="px-4 pb-6 pt-1 space-y-6">
+              <div className="flex items-center gap-6">
+                {/* Pie Chart — Clean & Balanced */}
+                <div className="flex-shrink-0" style={{ width: 120, height: 120 }}>
+                  <svg viewBox="0 0 128 128" className="w-full h-full">
+                    <defs>
+                      <linearGradient id="grad-bullish" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stopColor="#00FF87" />
+                        <stop offset="100%" stopColor="#00CCFF" />
+                      </linearGradient>
+                      <linearGradient id="grad-bearish" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stopColor="#FF3B6B" />
+                        <stop offset="100%" stopColor="#CC003D" />
+                      </linearGradient>
+                      {slices.map((s, i) => (
+                        <filter key={i} id={`gp${i}`} x="-20%" y="-20%" width="140%" height="140%">
+                          <feGaussianBlur stdDeviation="1.2" result="blur" />
+                          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                        </filter>
+                      ))}
+                    </defs>
+                    <circle cx={CX} cy={CY} r={R} fill="rgba(255,255,255,0.03)" />
+                    {total > 0 ? activePaths.map(({ path, slice }, i) => path ? (
+                      <path key={i} d={path} fill={slice.color} filter={`url(#gp${i})`} />
+                    ) : null) : (
+                      <circle cx={CX} cy={CY} r={R} fill="rgba(255,255,255,0.05)" />
+                    )}
+                    {/* Inner hole: Adjusted for best UI proportion */}
+                    <circle cx={CX} cy={CY} r={32} fill="#06070b" />
+                    <text x={CX} y={CY - 4} textAnchor="middle" fill="white" fontSize="24" fontWeight="900" fontFamily="Space Grotesk, sans-serif">
+                      {total > 0 ? score : "—"}
+                    </text>
+                    <text x={CX} y={CY + 14} textAnchor="middle" fill={scoreColor} fontSize="8" fontWeight="800" letterSpacing="0.1em" fontFamily="Space Grotesk, sans-serif">
+                      {total > 0 ? scoreLabel : "N/A"}
+                    </text>
+                  </svg>
+                </div>
+
+                {/* Legend + Thicker Bars */}
+                <div className="flex-1 space-y-4">
+                  {slices.map((s, i) => (
+                    <div key={i}>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full" style={{ background: s.color.startsWith("url") ? (s.color.includes("bullish") ? "#00FF87" : "#FF3B6B") : s.color }} />
+                          <span className="text-[10px] font-black uppercase tracking-wider text-white/40">{s.label}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[14px] font-black text-white">{s.count}</span>
+                          <span className="text-[10px] font-bold text-white/20">{s.pct}%</span>
+                        </div>
+                      </div>
+                      {/* Thicker Horizontal Bars (6px) */}
+                      <div className="h-[6px] rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.05)" }}>
+                        <motion.div className="h-full rounded-full"
+                          initial={{ width: 0 }} animate={{ width: `${s.pct}%` }}
+                          transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: i * 0.05 }}
+                          style={{ background: s.color }}
+                        />
+                      </div>
+                      {s.avgPrice && (
+                        <div className="mt-1 text-[8.5px] font-price font-bold text-white/20">
+                          avg ${s.avgPrice.toLocaleString()}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <p className="text-center text-[9px] font-bold" style={{ color: "rgba(255,255,255,0.18)" }}>
+                {total} {language === "Turkish" ? "toplam yorum · Pulse Skoru:" : "total comments · Pulse Score:"} <span style={{ color: scoreColor, fontWeight: 900 }}>{score}/100</span>
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 /* ── AI SENTIMENT CARD — CLEAN ── */
 function AICard({ filter, userText, userSentiment, isOwn, isTranslated, language }: {
   filter: string; userText?: string; userSentiment?: string; isOwn?: boolean; isTranslated: boolean; language: string;
@@ -338,66 +514,14 @@ export function DetailedPointSheet({
                     </p>
                   </div>
 
-                  {/* Sentiment Stats — Collapsible */}
-                  <details className="group cursor-pointer">
-                    <summary className="flex items-center justify-between px-2 py-2 select-none" style={{ color: "rgba(255,255,255,0.3)" }}>
-                      <span className="text-[10px] font-bold uppercase tracking-[0.15em]">Sentiment Details</span>
-                      <ChevronDown className="w-3 h-3 transition-transform group-open:rotate-180" />
-                    </summary>
-                    <div className="mt-4 space-y-4">
-                      {/* Donut — Optional */}
-                      <div className="flex justify-center">
-                        <div className="relative w-[100px] h-[100px]">
-                          <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
-                            <circle cx="18" cy="18" r="14" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="4" />
-                            {total > 0 && <>
-                              <circle cx="18" cy="18" r="14" fill="none" stroke="#00FF87" strokeWidth="4"
-                                strokeDasharray={`${(posPct / 100) * C} ${C}`} strokeLinecap="round" />
-                              <circle cx="18" cy="18" r="14" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="4"
-                                strokeDasharray={`${(neuPct / 100) * C} ${C}`}
-                                strokeDashoffset={`${-((posPct / 100) * C)}`} strokeLinecap="round" />
-                              <circle cx="18" cy="18" r="14" fill="none" stroke="#FF3B3B" strokeWidth="4"
-                                strokeDasharray={`${(negPct / 100) * C} ${C}`}
-                                strokeDashoffset={`${-(((posPct + neuPct) / 100) * C)}`} strokeLinecap="round" />
-                            </>}
-                          </svg>
-                          <div className="absolute inset-0 flex flex-col items-center justify-center">
-                            <span className="text-[36px] font-black text-white leading-none">{total > 0 ? score : "—"}</span>
-                            <span className="text-[8px] font-bold uppercase tracking-wider mt-1" style={{ color: "rgba(255,255,255,0.3)" }}>Score</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Bars */}
-                      <div className="space-y-2.5">
-                        {([
-                          { label: "Positive", pct: posPct, color: "#00FF87" },
-                          { label: "Neutral",  pct: neuPct, color: "rgba(255,255,255,0.35)" },
-                          { label: "Negative", pct: negPct, color: "#FF3B3B" },
-                        ] as const).map(s => (
-                          <div key={s.label} className="flex items-center gap-2.5">
-                            <span className="text-[11px] font-bold uppercase tracking-wider w-16" style={{ color: s.color }}>{s.label}</span>
-                            <div className="flex-1 h-[4px] rounded-full" style={{ background: "rgba(255,255,255,0.05)" }}>
-                              <motion.div
-                                className="h-full rounded-full"
-                                initial={{ width: 0 }}
-                                animate={{ width: `${s.pct}%` }}
-                                transition={{ duration: 0.6, ease: "easeOut" }}
-                                style={{ backgroundColor: s.color }}
-                              />
-                            </div>
-                            <span className="text-[12px] font-black w-8 text-right" style={{ color: s.color }}>
-                              {s.pct}%
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-
-                      <p className="text-[10px] font-bold text-center" style={{ color: "rgba(255,255,255,0.3)" }}>
-                        {total} {language === "Turkish" ? "yorum" : "comments"}
-                      </p>
-                    </div>
-                  </details>
+                  {/* Sentiment Stats — Premium Expandable */}
+                  <SentimentStats
+                    pos={pos} neu={neu} neg={neg}
+                    posPct={posPct} neuPct={neuPct} negPct={negPct}
+                    score={score} total={total}
+                    detailedPoint={detailedPoint}
+                    language={language}
+                  />
                 </div>
 
                 {/* filter pills — minimal black glassmorphism */}

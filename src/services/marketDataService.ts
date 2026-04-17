@@ -1,3 +1,6 @@
+import { QuoteDataSchema, TimeSeriesSchema, SearchQuoteSchema, MarketInsightSchema, safeParse } from '@/schemas/marketSchemas';
+import { toast } from 'sonner';
+
 // Yahoo Finance proxy server endpoint (relative path — proxied by Vite in dev)
 const SERVER_BASE = "/api/market";
 
@@ -65,11 +68,25 @@ export async function fetchTimeSeries(
   try {
     const url = `${SERVER_BASE}/chart?symbol=${encodeURIComponent(symbol)}&interval=${config.interval}&range=${config.range}`;
     const res = await fetch(url);
-    if (!res.ok) return null;
-    const prices: number[] = await res.json();
-    if (!Array.isArray(prices) || prices.length === 0) return null;
-    return prices;
-  } catch {
+    
+    if (!res.ok) {
+      toast.error(`Veri yüklenemedi: ${res.status}`);
+      return null;
+    }
+    
+    const rawData: unknown = await res.json();
+    const result = safeParse(TimeSeriesSchema, rawData);
+    
+    if (result.success === false) {
+      console.error('TimeSeries validation error:', result.error);
+      toast.error('Geçersiz veri formatı');
+      return null;
+    }
+    
+    return result.data;
+  } catch (error) {
+    console.error('fetchTimeSeries error:', error);
+    toast.error('Bağlantı hatası. Tekrar deneyin.');
     return null;
   }
 }
@@ -91,11 +108,75 @@ export async function fetchQuote(assetId: string): Promise<QuoteData | null> {
   const url = `${SERVER_BASE}/quote?symbol=${encodeURIComponent(symbol)}`;
   try {
     const res = await fetch(url);
-    if (!res.ok) return null;
-    const quote: QuoteData = await res.json();
-    if (!quote?.price) return null;
-    return quote;
-  } catch {
+    
+    if (!res.ok) {
+      toast.error(`Fiyat verisi yüklenemedi: ${res.status}`);
+      return null;
+    }
+    
+    const rawData: unknown = await res.json();
+    const result = safeParse(QuoteDataSchema, rawData);
+    
+    if (result.success === false) {
+      console.error('Quote validation error:', result.error);
+      toast.error('Geçersiz fiyat formatı');
+      return null;
+    }
+    
+    return result.data as QuoteData;
+  } catch (error) {
+    console.error('fetchQuote error:', error);
+    toast.error('Bağlantı hatası. Tekrar deneyin.');
+    return null;
+  }
+}
+
+export interface MarketInsight {
+  assetId: string;
+  assetName: string;
+  pulseScore: number;
+  sentiment: "Positive" | "Negative" | "Neutral";
+  aiSummary: string;
+  categoryStats?: {
+    bullish: { count: number; avgPrice: number };
+    bearish: { count: number; avgPrice: number };
+    neutral: { count: number; avgPrice: number };
+  };
+  comments: {
+    id: string;
+    user: string;
+    text: string;
+    likes: number;
+    sentiment: "Positive" | "Negative" | "Neutral";
+    source: string;
+    timestamp: number;
+    priceAtComment?: number;
+  }[];
+}
+
+export async function fetchMarketInsights(assetId: string, assetName: string, price: number): Promise<MarketInsight | null> {
+  try {
+    const url = `${SERVER_BASE}/insights?symbol=${encodeURIComponent(assetId)}&name=${encodeURIComponent(assetName)}&price=${price}`;
+    const res = await fetch(url);
+    
+    if (!res.ok) {
+      toast.error('AI analizi yüklenemedi');
+      return null;
+    }
+    
+    const rawData: unknown = await res.json();
+    const result = safeParse(MarketInsightSchema, rawData);
+    
+    if (result.success === false) {
+      console.error('MarketInsight validation error:', result.error);
+      toast.error('Geçersiz analiz formatı');
+      return null;
+    }
+    
+    return result.data as MarketInsight;
+  } catch (error) {
+    console.error('fetchMarketInsights error:', error);
+    toast.error('Analiz bağlantı hatası');
     return null;
   }
 }
