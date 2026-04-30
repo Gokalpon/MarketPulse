@@ -19,6 +19,14 @@ export interface UserComment {
   timestamp: number;
   user?: string;
   likes?: number;
+  source?: string;
+  url?: string;
+  priceAtComment?: number;
+  chartTimestamp?: number;
+  bindingKind?: "exact_price" | "inferred_time" | "session_context" | "unbound";
+  bindingLabel?: string;
+  bindingConfidence?: number;
+  displayMode?: "price_marker" | "session_marker" | "hidden";
 }
 
 // ──── SENTIMENT CLUSTERS ────
@@ -29,6 +37,9 @@ export interface SentimentCluster {
   sentiment: "Positive" | "Negative" | "Neutral";
   count: number;
   translation?: string;
+  bindingKind?: "exact_price" | "inferred_time" | "session_context" | "unbound";
+  origin?: "user" | "external";
+  sources?: string[];
 }
 
 // ──── POINT/DETAILED POINT ────
@@ -42,6 +53,12 @@ export interface DetailedPointData {
   type?: string;
   newsUrl?: string;
   idx?: number;
+  aiSummary?: string;
+  globalInsight?: string;
+  categorySummaries?: Record<string, string>;
+  categoryStats?: Record<string, { count: number; avgPrice?: number; detail?: string }>;
+  bindingKind?: "exact_price" | "inferred_time" | "session_context" | "unbound";
+  origin?: "user" | "external";
 }
 
 // ──── COMMUNITY POST ────

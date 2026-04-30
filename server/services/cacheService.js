@@ -6,23 +6,33 @@ const memoryCache = new Map();
 // Redis client configuration with fallback
 let redis = null;
 let useMemoryCache = false;
+const shouldUseRedis = Boolean(process.env.REDIS_HOST || process.env.REDIS_URL);
 
 try {
-  redis = new Redis({
-    host: process.env.REDIS_HOST || 'localhost',
-    port: process.env.REDIS_PORT || 6379,
-    password: process.env.REDIS_PASSWORD || undefined,
-    retryStrategy: (times) => {
-      if (times > 3) {
-        console.log('Redis not available, using in-memory cache');
-        useMemoryCache = true;
-        return null; // Stop retrying
-      }
-      return Math.min(times * 100, 1000);
-    },
-    maxRetriesPerRequest: 3,
-    lazyConnect: true
-  });
+  if (!shouldUseRedis) {
+    throw new Error('REDIS_HOST not configured');
+  }
+
+  redis = process.env.REDIS_URL
+    ? new Redis(process.env.REDIS_URL, {
+        maxRetriesPerRequest: 3,
+        lazyConnect: true,
+      })
+    : new Redis({
+        host: process.env.REDIS_HOST,
+        port: Number(process.env.REDIS_PORT || 6379),
+        password: process.env.REDIS_PASSWORD || undefined,
+        retryStrategy: (times) => {
+          if (times > 3) {
+            console.log('Redis not available, using in-memory cache');
+            useMemoryCache = true;
+            return null; // Stop retrying
+          }
+          return Math.min(times * 100, 1000);
+        },
+        maxRetriesPerRequest: 3,
+        lazyConnect: true
+      });
 
   // Test connection
   await redis.connect().catch(() => {
@@ -32,7 +42,7 @@ try {
   });
 
 } catch (error) {
-  console.log('Redis initialization failed, using in-memory cache');
+  console.log('Redis not configured, using in-memory cache');
   useMemoryCache = true;
   redis = null;
 }
@@ -56,7 +66,7 @@ export const cacheService = {
       if (useMemoryCache || !redis) {
         const item = memoryCache.get(key);
         if (!item) return null;
-        
+
         // Check if expired
         if (Date.now() > item.expiresAt) {
           memoryCache.delete(key);
@@ -64,10 +74,10 @@ export const cacheService = {
         }
         return { data: item.data, cachedAt: item.cachedAt };
       }
-      
+
       const data = await redis.get(key);
       if (!data) return null;
-      
+
       const parsed = JSON.parse(data);
       return parsed;
     } catch (error) {
@@ -88,10 +98,10 @@ export const cacheService = {
         cachedAt: Date.now(),
         expiresAt: Date.now() + (ttlSeconds * 1000)
       };
-      
+
       // Always set in memory cache as backup
       memoryCache.set(key, cacheData);
-      
+
       if (!useMemoryCache && redis) {
         await redis.setex(key, ttlSeconds, JSON.stringify({
           data: value,
@@ -123,7 +133,7 @@ export const cacheService = {
     try {
       const item = memoryCache.get(key);
       if (item && Date.now() <= item.expiresAt) return true;
-      
+
       if (!useMemoryCache && redis) {
         const exists = await redis.exists(key);
         return exists === 1;

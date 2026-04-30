@@ -1,6 +1,6 @@
 import React from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { ExternalLink, X, Brain, Trash2, Reply, Globe, Heart, Send, TrendingUp, TrendingDown, Minus, ChevronDown } from "lucide-react";
+import { ExternalLink, X, Brain, Trash2, Reply, Globe, Heart, Send, TrendingUp, TrendingDown, Minus, ChevronDown, Newspaper } from "lucide-react";
 import { DetailedPointData, UserComment, TranslationStrings } from "@/types";
 
 interface Props {
@@ -13,6 +13,9 @@ interface Props {
   setSentimentFilter: (s: string) => void;
   activeUserComments: UserComment[];
   deleteComment: (id: string) => void;
+  isAnalyzing?: boolean;
+  generateAIAnalysis: () => void;
+  onSubmitPointComment?: (text: string, sentiment: "Positive" | "Negative" | "Neutral") => boolean;
 }
 
 function Badge({ s }: { s: string }) {
@@ -43,7 +46,7 @@ function Pill({ label, active, onClick, language }: { label: string; active: boo
     if (label === "Positive") return "mp-positive-badge shadow-[0_0_15px_rgba(0,255,255,0.2)] border-transparent";
     if (label === "Negative") return "mp-negative-badge shadow-[0_0_15px_rgba(255,59,59,0.2)] border-transparent";
     if (label === "Neutral") return "bg-white/90 text-black shadow-[0_0_15px_rgba(255,255,255,0.2)] border-transparent";
-    return "bg-white/5 text-white border-transparent"; 
+    return "bg-white/5 text-white border-transparent";
   };
 
   return (
@@ -53,7 +56,7 @@ function Pill({ label, active, onClick, language }: { label: string; active: boo
       whileTap={{ scale: 0.95 }}
       className={`flex-1 max-w-[90px] py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all ${getClassName()}`}
     >
-      {label === "Positive" && language === "Turkish" ? "POZİTİF" : 
+      {label === "Positive" && language === "Turkish" ? "POZİTİF" :
        label === "Negative" && language === "Turkish" ? "NEGATİF" :
        label === "Neutral" && language === "Turkish" ? "NÖTR" :
        label === "All" && language === "Turkish" ? "HEPSİ" : label}
@@ -263,9 +266,9 @@ function AICard({ filter, userText, userSentiment, isOwn, isTranslated, language
       style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(0,229,200,0.15)" }}>
       {isTranslated && (
         <div className="absolute inset-0 opacity-10 pointer-events-none"
-             style={{ 
+             style={{
                background: "linear-gradient(90deg, transparent, rgba(0,255,135,0.05) 30%, rgba(224,255,247,0.18) 50%, rgba(0,255,135,0.05) 70%, transparent)",
-               animation: "mp-shimmer 4s infinite cubic-bezier(0.4, 0, 0.2, 1)" 
+               animation: "mp-shimmer 4s infinite cubic-bezier(0.4, 0, 0.2, 1)"
              }} />
       )}
       <div className="flex items-center gap-2 mb-2.5 relative z-10">
@@ -288,9 +291,18 @@ function Card({ c, language, isOwn, onDelete, isGlobalTranslated }: {
 }) {
   const [isLocalTranslated, setIsLocalTranslated] = React.useState(false);
   const isTranslated = isGlobalTranslated || isLocalTranslated;
-  
+
   // Simulated translations for foreign comments
   const originalText = c.text;
+  const displayUser = isOwn ? "You" : (c.user || c.source || "Community");
+  const avatarLetter = displayUser[0]?.toUpperCase() || "@";
+  const bindingLabel = c.bindingKind === "exact_price"
+    ? (language === "Turkish" ? "Fiyata bagli" : "Price linked")
+    : c.bindingKind === "inferred_time"
+      ? (language === "Turkish" ? "Zamana bagli" : "Time linked")
+      : c.bindingKind === "session_context"
+        ? (language === "Turkish" ? "Gun yorumu" : "Day context")
+        : null;
   const translatedText = language === "Turkish" ? "Piyasada yakında bir düzeltme bekleniyor." : "Expect a market correction soon.";
 
   return (
@@ -299,27 +311,27 @@ function Card({ c, language, isOwn, onDelete, isGlobalTranslated }: {
         background: isOwn ? "rgba(90,50,200,0.08)" : "rgba(255,255,255,0.02)",
         border: isOwn ? "1px solid rgba(120,70,230,0.15)" : "1px solid rgba(255,255,255,0.05)",
       }}>
-      
+
       {isTranslated && (
         <div className="absolute inset-0 opacity-10 pointer-events-none"
-             style={{ 
+             style={{
                background: "linear-gradient(90deg, transparent, rgba(0,255,135,0.05) 30%, rgba(224,255,247,0.18) 50%, rgba(0,255,135,0.05) 70%, transparent)",
-               animation: "mp-shimmer 4s infinite cubic-bezier(0.4, 0, 0.2, 1)" 
+               animation: "mp-shimmer 4s infinite cubic-bezier(0.4, 0, 0.2, 1)"
              }} />
       )}
 
       <div className="flex items-center gap-1.5 mb-1.5 relative z-10">
         <div className="w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-black flex-shrink-0"
           style={{ background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.35)" }}>
-          {isOwn ? "Y" : (c.user ?? "@")[0].toUpperCase()}
+          {isOwn ? "Y" : avatarLetter}
         </div>
         <span className="text-[10px] font-bold truncate flex-1" style={{ color: "rgba(255,255,255,0.75)" }}>
-          {isOwn ? "@You" : `@${c.user}`}
+          @{displayUser}
         </span>
         <Badge s={c.sentiment} />
-        
+
         {!isOwn && (
-          <button 
+          <button
             onClick={() => setIsLocalTranslated(!isLocalTranslated)}
             className={`p-1.5 rounded-lg transition-all duration-300 ${isTranslated ? 'bg-[var(--mp-cyan)]/10 text-[var(--mp-cyan)]' : 'text-white/20 hover:text-white/40 hover:bg-white/5'}`}
             title="Translate"
@@ -340,7 +352,17 @@ function Card({ c, language, isOwn, onDelete, isGlobalTranslated }: {
       </p>
 
       <div className="flex items-center justify-between pt-1.5 mt-1.5 relative z-10" style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {!isOwn && (
+            <span className="text-[8px] font-black uppercase tracking-wider text-white/20">
+              {c.source || "Web"}
+            </span>
+          )}
+          {bindingLabel && (
+            <span className="text-[8px] font-black uppercase tracking-wider text-white/20">
+              {bindingLabel}
+            </span>
+          )}
           <button className="flex items-center gap-0.5 transition-colors" style={{ color: "rgba(255,255,255,0.2)" }}>
             <Heart className="w-[9px] h-[9px]" />
             <span className="text-[8px] font-bold">{c.likes ?? 0}</span>
@@ -360,55 +382,81 @@ export function DetailedPointSheet({
   detailedPoint, setDetailedPoint, setSelectedPoint,
   language, t, sentimentFilter, setSentimentFilter,
   activeUserComments, deleteComment,
+  isAnalyzing, generateAIAnalysis,
+  onSubmitPointComment,
 }: Props) {
   const [showFullComments, setShowFullComments] = React.useState(false);
   const [isGlobalTranslated, setIsGlobalTranslated] = React.useState(false);
+  const [draftComment, setDraftComment] = React.useState("");
+
+  if (!detailedPoint) return null;
 
   return (
     <AnimatePresence>
       {detailedPoint && (() => {
-        const all    = detailedPoint.comments ?? [];
-        const total  = all.length;
-        const pos    = all.filter((c: UserComment) => c.sentiment === "Positive").length;
-        const neu    = all.filter((c: UserComment) => c.sentiment === "Neutral").length;
-        const neg    = all.filter((c: UserComment) => c.sentiment === "Negative").length;
+        // Merge AI-scraped comments with local user comments for a full view
+        const all = [...(detailedPoint.comments ?? [])];
+        const total = all.length;
+        const pos = all.filter((c: any) => c.sentiment === "Positive").length;
+        const neu = all.filter((c: any) => c.sentiment === "Neutral").length;
+        const neg = all.filter((c: any) => c.sentiment === "Negative").length;
+
+        const ownIds = new Set(activeUserComments.map((comment) => comment.id));
+
+        // Show only external community comments here; local MarketPulse comments render in the own section.
+        const community = all
+          .filter((c: UserComment) => !ownIds.has(c.id) && c.user !== "You" && c.source !== "MarketPulse")
+          .filter((c: UserComment) => sentimentFilter === "All" || c.sentiment === sentimentFilter)
+          .slice(0, sentimentFilter === "All" ? 50 : 40);
         const posPct = total > 0 ? Math.round((pos / total) * 100) : 0;
         const neuPct = total > 0 ? Math.round((neu / total) * 100) : 0;
         const negPct = total > 0 ? Math.round((neg / total) * 100) : 0;
         const score  = total > 0 ? Math.round((pos * 100 + neu * 50) / total) : 0;
         const C      = 2 * Math.PI * 14;
 
+        const detailIdx = detailedPoint.avgIdx ?? detailedPoint.idx ?? 0;
         const nearbyOwn = activeUserComments.filter(
-          uc => Math.abs(uc.chartIndex - (detailedPoint.avgIdx ?? 0)) <= 3
+          uc => Math.abs(uc.chartIndex - detailIdx) <= 3
         );
         const ownInFilter = sentimentFilter === "All"
           ? nearbyOwn
           : nearbyOwn.filter(uc => uc.sentiment === sentimentFilter);
-
-        const community = all
-          .filter((c: UserComment) => sentimentFilter === "All" || c.sentiment === sentimentFilter)
-          .slice(0, 40);
 
         // Get top community comment (most liked)
         const topComment = community.length > 0
           ? community.reduce((prev, curr) => ((curr.likes ?? 0) > (prev.likes ?? 0) ? curr : prev))
           : null;
 
-        const close = () => { setDetailedPoint(null); setSelectedPoint(null); setShowFullComments(false); };
+        const close = () => { setDetailedPoint(null); setSelectedPoint(null); setShowFullComments(false); setDraftComment(""); };
+        const submitInlineComment = () => {
+          const sentiment = sentimentFilter === "Positive" || sentimentFilter === "Negative" || sentimentFilter === "Neutral"
+            ? sentimentFilter
+            : (detailedPoint.sentiment || "Neutral");
+          const didSubmit = onSubmitPointComment?.(draftComment, sentiment as "Positive" | "Negative" | "Neutral");
+          if (didSubmit) setDraftComment("");
+        };
 
         const getInsightText = () => {
           if (sentimentFilter === "All") {
-            return isGlobalTranslated && language === "Turkish" ? (AI_SUMMARY_TR.All) : (AI_SUMMARY.All);
+            return isGlobalTranslated && (detailedPoint.aiSummary || detailedPoint.categorySummaries?.global)
+                   ? (detailedPoint.aiSummary || detailedPoint.categorySummaries?.global)
+                   : (isGlobalTranslated && language === "Turkish" ? AI_SUMMARY_TR.All : AI_SUMMARY.All);
           }
-          if (topComment) {
-            if (isGlobalTranslated && language === "Turkish") {
-              if (sentimentFilter === "Positive") return "Boğalar piyasaya hakim, yükseliş devam edebilir.";
-              if (sentimentFilter === "Negative") return "Piyasada yakında bir düzeltme bekleniyor.";
-              return "Fiyat bu seviyede denge bulmaya çalışıyor.";
-            }
-            return topComment.text;
-          }
-          return isGlobalTranslated && language === "Turkish" ? (AI_SUMMARY_TR[sentimentFilter] ?? AI_SUMMARY_TR.All) : (AI_SUMMARY[sentimentFilter] ?? AI_SUMMARY.All);
+
+          const statsKey = sentimentFilter === "Positive" ? "bullish" : sentimentFilter === "Negative" ? "bearish" : "neutral";
+
+          // Check for category summaries from Gemini
+          const catSum = detailedPoint.categorySummaries?.[sentimentFilter.toLowerCase()];
+          if (catSum) return catSum;
+
+          const categoryDetail = detailedPoint.categoryStats?.[statsKey]?.detail;
+          if (categoryDetail) return categoryDetail;
+
+          if (topComment && !isGlobalTranslated) return topComment.text;
+
+          return isGlobalTranslated && language === "Turkish"
+                 ? (AI_SUMMARY_TR[sentimentFilter] ?? AI_SUMMARY_TR.All)
+                 : (AI_SUMMARY[sentimentFilter] ?? AI_SUMMARY.All);
         };
 
         return (
@@ -462,10 +510,10 @@ export function DetailedPointSheet({
                     className="p-1.5 transition-all hover:scale-110 active:scale-90 flex items-center justify-center"
                     title={isGlobalTranslated ? "Show Original" : "Translate All"}
                   >
-                    <Globe 
-                      className="w-[18px] h-[18px] transition-all duration-300" 
-                      strokeWidth={2.4} 
-                      style={{ color: isGlobalTranslated ? "#00E5CC" : "rgba(255,255,255,0.4)" }} 
+                    <Globe
+                      className="w-[18px] h-[18px] transition-all duration-300"
+                      strokeWidth={2.4}
+                      style={{ color: isGlobalTranslated ? "#00E5CC" : "rgba(255,255,255,0.4)" }}
                     />
                   </button>
                   <button onClick={close}
@@ -490,17 +538,10 @@ export function DetailedPointSheet({
                 <div className="space-y-4 py-2">
                   {/* AI Sentiment Text — CLEAN */}
                   <div className="rounded-lg p-4 relative overflow-hidden" style={{ background: "rgba(255,255,255,0.02)" }}>
-                    {isGlobalTranslated && (
-                      <div className="absolute inset-0 opacity-10 pointer-events-none"
-                           style={{ 
-                             background: "linear-gradient(90deg, transparent, rgba(0,255,135,0.05) 30%, rgba(224,255,247,0.18) 50%, rgba(0,255,135,0.05) 70%, transparent)",
-                             animation: "mp-shimmer 4s infinite cubic-bezier(0.4, 0, 0.2, 1)" 
-                           }} />
-                    )}
                     <div className="flex items-center gap-2 mb-2.5 relative z-10">
                       <Brain className="w-4 h-4" style={{ color: "#FFFFFF" }} />
-                      <span className="text-[10px] font-bold uppercase tracking-[0.15em]" 
-                        style={{ 
+                      <span className="text-[10px] font-bold uppercase tracking-[0.15em]"
+                        style={{
                           backgroundImage: "linear-gradient(135deg,#00FF87,#00E5CC)",
                           WebkitBackgroundClip: "text",
                           backgroundClip: "text",
@@ -508,8 +549,22 @@ export function DetailedPointSheet({
                         }}>
                         {isGlobalTranslated && language === "Turkish" ? "MARKET ANALİZİ" : "Market Insight"}
                       </span>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); generateAIAnalysis(); }}
+                        disabled={isAnalyzing}
+                        className={`ml-auto p-1.5 rounded-lg transition-all ${isAnalyzing ? 'animate-spin text-[var(--mp-cyan)]' : 'text-white/20 hover:text-white/40 hover:bg-white/5'}`}
+                      >
+                        <TrendingUp className="w-3.5 h-3.5" />
+                      </button>
                     </div>
-                    <p className="text-[14px] leading-relaxed font-medium relative z-10" style={{ color: isGlobalTranslated ? "rgba(255,255,255,0.95)" : "rgba(255,255,255,0.75)" }}>
+                    <p className="text-[13.5px] leading-relaxed font-semibold mb-2 relative z-10" style={{ color: "rgba(255,255,255,0.95)" }}>
+                      {isAnalyzing
+                        ? (language === "Turkish" ? "AI verileri analiz ediyor..." : "AI is analyzing data...")
+                        : (detailedPoint?.globalInsight || detailedPoint?.aiSummary || (isGlobalTranslated && language === "Turkish" ? "Analizi başlatmak için tıkla" : "Tap refresh to start analysis"))}
+                    </p>
+                    <div className="h-px w-full bg-white/5 my-3 relative z-10" />
+                    <p className="text-[12px] leading-relaxed relative z-10" style={{ color: "rgba(255,255,255,0.5)" }}>
+                      <span className="text-[var(--mp-cyan)] font-bold mr-1">{language === "Turkish" ? "TREND:" : "TREND:"}</span>
                       {getInsightText()}
                     </p>
                   </div>
@@ -522,6 +577,33 @@ export function DetailedPointSheet({
                     detailedPoint={detailedPoint}
                     language={language}
                   />
+
+                  {/* NEWS SECTION — MINIMAL & SYSTEM DESIGN MATCH */}
+                  {(detailedPoint as any).news && (detailedPoint as any).news.length > 0 && (
+                    <div className="space-y-3 pt-4 border-t border-white/5">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Newspaper className="w-3.5 h-3.5" style={{ color: "rgba(255,255,255,0.25)" }} />
+                        <span className="text-[9px] font-black uppercase tracking-[0.2em]" style={{ color: "rgba(255,255,255,0.25)" }}>
+                          {language === "Turkish" ? "RESMİ HABERLER" : "MARKET NEWS"}
+                        </span>
+                      </div>
+                      {(detailedPoint as any).news.map((n: any, i: number) => (
+                        <a
+                          key={i}
+                          href={n.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block p-3 rounded-lg bg-white/[0.02] border border-white/5 transition-all active:scale-[0.98] active:bg-white/5"
+                        >
+                          <h4 className="text-[11.5px] font-bold text-white/80 mb-1.5 leading-snug">{n.title}</h4>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[8.5px] text-white/20 uppercase font-black tracking-wider">{n.publisher}</span>
+                            <ExternalLink className="w-2.5 h-2.5 text-white/10" />
+                          </div>
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* filter pills — minimal black glassmorphism */}
@@ -581,6 +663,14 @@ export function DetailedPointSheet({
                   <div className="relative">
                     <input
                       type="text"
+                      value={draftComment}
+                      onChange={(event) => setDraftComment(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          submitInlineComment();
+                        }
+                      }}
                       placeholder={language === "Turkish" ? "Yorumunu yaz..." : "Write your comment..."}
                       className="w-full rounded-2xl py-3.5 pl-4 pr-14 text-[13px] focus:outline-none placeholder:text-white/20 font-medium"
                       style={{
@@ -590,8 +680,10 @@ export function DetailedPointSheet({
                       }}
                     />
                     <button
+                      onClick={submitInlineComment}
+                      disabled={!draftComment.trim()}
                       className="absolute right-2.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-xl flex items-center justify-center transition-all active:scale-95 hover:scale-110"
-                      style={{ background: "linear-gradient(135deg,#00FF87,#00E5CC)", color: "#040D08" }}>
+                      style={{ background: "linear-gradient(135deg,#00FF87,#00E5CC)", color: "#040D08", opacity: draftComment.trim() ? 1 : 0.45 }}>
                       <Send className="w-3.5 h-3.5" strokeWidth={2.5} />
                     </button>
                   </div>

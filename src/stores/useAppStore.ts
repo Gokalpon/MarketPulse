@@ -2,6 +2,13 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { UserComment, DetailedPointData, ChartCrosshair } from '@/types';
 
+export const AI_PULSE_FREE_LIMIT = 3;
+
+export const getAiPulseDateKey = () => {
+  const date = new Date();
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+};
+
 // ============================================
 // TYPES
 // ============================================
@@ -75,6 +82,9 @@ interface SettingsState {
 interface AIState {
   isAnalyzing: boolean;
   aiAnalysis: string | null;
+  aiPulseCredits: number;
+  aiPulseCreditDate: string;
+  isProUnlocked: boolean;
 }
 
 // ============================================
@@ -91,7 +101,7 @@ interface AppStore extends UIState, MarketsState, AssetState, UserState, Comment
   setIsMenuOpen: (v: boolean) => void;
   setIsSearchActive: (v: boolean) => void;
   setChartExpanded: (v: boolean) => void;
-  
+
   // Markets Actions
   setMarketsSubTab: (v: "watchlist" | "all") => void;
   setWatchlistLayout: (v: "list" | "grid") => void;
@@ -103,7 +113,7 @@ interface AppStore extends UIState, MarketsState, AssetState, UserState, Comment
   setSelectedMarket: (v: string) => void;
   setShowMarketPicker: (v: boolean) => void;
   setMarketPickerSearch: (v: string) => void;
-  
+
   // Asset Actions
   setSelectedAssetId: (v: string) => void;
   setTimeframe: (v: string) => void;
@@ -111,7 +121,7 @@ interface AppStore extends UIState, MarketsState, AssetState, UserState, Comment
   setSelectedPoint: (v: DetailedPointData | null) => void;
   setDetailedPoint: (v: DetailedPointData | null) => void;
   setChartCrosshair: (v: ChartCrosshair | null) => void;
-  
+
   // User Actions
   setProfilePicture: (v: string | null) => void;
   setWatchlistAssets: (v: string[]) => void;
@@ -121,7 +131,7 @@ interface AppStore extends UIState, MarketsState, AssetState, UserState, Comment
   addToPinned: (assetId: string) => void;
   removeFromPinned: (assetId: string) => void;
   setIsEditPinned: (v: boolean) => void;
-  
+
   // Comment Actions
   setShowCommentSheet: (v: boolean) => void;
   setCommentChartIdx: (v: number | null) => void;
@@ -132,24 +142,27 @@ interface AppStore extends UIState, MarketsState, AssetState, UserState, Comment
   setCommentsTimeframe: (v: string) => void;
   addUserComment: (comment: UserComment) => void;
   deleteUserComment: (id: string) => void;
-  
+
   // Search Actions
   setSearchQuery: (v: string) => void;
   setSearchResults: (v: any[]) => void;
   setIsSearching: (v: boolean) => void;
   setExpandedCategory: (v: string | null) => void;
-  
+
   // Settings Actions
   setLanguage: (v: string) => void;
   setAutoTranslate: (v: boolean) => void;
   setShowNewsBubbles: (v: boolean) => void;
   setShowAIConsensus: (v: boolean) => void;
   setSentimentFilter: (v: string) => void;
-  
+
   // AI Actions
   setIsAnalyzing: (v: boolean) => void;
   setAiAnalysis: (v: string | null) => void;
-  
+  consumeAiPulseCredit: () => boolean;
+  resetAiPulseCredits: (dateKey?: string) => void;
+  setIsProUnlocked: (v: boolean) => void;
+
   // Reset Actions
   resetSplashState: () => void;
   resetAssetState: () => void;
@@ -229,6 +242,9 @@ const initialSettingsState: SettingsState = {
 const initialAIState: AIState = {
   isAnalyzing: false,
   aiAnalysis: null,
+  aiPulseCredits: AI_PULSE_FREE_LIMIT,
+  aiPulseCreditDate: getAiPulseDateKey(),
+  isProUnlocked: false,
 };
 
 // ============================================
@@ -281,22 +297,22 @@ export const useAppStore = create<AppStore>()(
       // User Actions
       setProfilePicture: (v) => set({ profilePicture: v }),
       setWatchlistAssets: (v) => set({ watchlistAssets: v }),
-      addToWatchlist: (assetId) => set((s) => ({ 
-        watchlistAssets: s.watchlistAssets.includes(assetId) 
-          ? s.watchlistAssets 
-          : [...s.watchlistAssets, assetId] 
+      addToWatchlist: (assetId) => set((s) => ({
+        watchlistAssets: s.watchlistAssets.includes(assetId)
+          ? s.watchlistAssets
+          : [...s.watchlistAssets, assetId]
       })),
-      removeFromWatchlist: (assetId) => set((s) => ({ 
-        watchlistAssets: s.watchlistAssets.filter((id) => id !== assetId) 
+      removeFromWatchlist: (assetId) => set((s) => ({
+        watchlistAssets: s.watchlistAssets.filter((id) => id !== assetId)
       })),
       setPinnedAssets: (v) => set({ pinnedAssets: v }),
-      addToPinned: (assetId) => set((s) => ({ 
-        pinnedAssets: s.pinnedAssets.includes(assetId) 
-          ? s.pinnedAssets 
-          : [...s.pinnedAssets, assetId] 
+      addToPinned: (assetId) => set((s) => ({
+        pinnedAssets: s.pinnedAssets.includes(assetId)
+          ? s.pinnedAssets
+          : [...s.pinnedAssets, assetId]
       })),
-      removeFromPinned: (assetId) => set((s) => ({ 
-        pinnedAssets: s.pinnedAssets.filter((id) => id !== assetId) 
+      removeFromPinned: (assetId) => set((s) => ({
+        pinnedAssets: s.pinnedAssets.filter((id) => id !== assetId)
       })),
       setIsEditPinned: (v) => set({ isEditPinned: v }),
 
@@ -308,11 +324,11 @@ export const useAppStore = create<AppStore>()(
       setShowMyComments: (v) => set({ showMyComments: v }),
       setCommentsExpanded: (v) => set({ commentsExpanded: v }),
       setCommentsTimeframe: (v) => set({ commentsTimeframe: v }),
-      addUserComment: (comment) => set((s) => ({ 
-        userComments: [comment, ...s.userComments] 
+      addUserComment: (comment) => set((s) => ({
+        userComments: [comment, ...s.userComments]
       })),
-      deleteUserComment: (id) => set((s) => ({ 
-        userComments: s.userComments.filter((c) => c.id !== id) 
+      deleteUserComment: (id) => set((s) => ({
+        userComments: s.userComments.filter((c) => c.id !== id)
       })),
 
       // Search Actions
@@ -331,28 +347,76 @@ export const useAppStore = create<AppStore>()(
       // AI Actions
       setIsAnalyzing: (v) => set({ isAnalyzing: v }),
       setAiAnalysis: (v) => set({ aiAnalysis: v }),
+      consumeAiPulseCredit: () => {
+        const state = get();
+        if (state.isProUnlocked) return true;
+
+        const todayKey = getAiPulseDateKey();
+        if (state.aiPulseCreditDate !== todayKey) {
+          set({ aiPulseCreditDate: todayKey, aiPulseCredits: AI_PULSE_FREE_LIMIT - 1 });
+          return true;
+        }
+
+        if (state.aiPulseCredits <= 0) return false;
+        set({ aiPulseCredits: state.aiPulseCredits - 1 });
+        return true;
+      },
+      resetAiPulseCredits: (dateKey) => set({
+        aiPulseCreditDate: dateKey || getAiPulseDateKey(),
+        aiPulseCredits: AI_PULSE_FREE_LIMIT,
+      }),
+      setIsProUnlocked: (v) => set({ isProUnlocked: v }),
 
       // Reset Actions
-      resetSplashState: () => set({ 
-        showSplash: true, 
-        isExitingSplash: false, 
-        isSplashPressed: false 
+      resetSplashState: () => set({
+        showSplash: true,
+        isExitingSplash: false,
+        isSplashPressed: false
       }),
-      resetAssetState: () => set({ 
-        selectedPoint: null, 
-        detailedPoint: null, 
-        chartCrosshair: null, 
-        aiAnalysis: null 
+      resetAssetState: () => set({
+        selectedPoint: null,
+        detailedPoint: null,
+        chartCrosshair: null,
+        aiAnalysis: null
       }),
-      resetCommentForm: () => set({ 
-        commentText: "", 
-        commentSentiment: "Neutral", 
-        commentChartIdx: null, 
-        showCommentSheet: false 
+      resetCommentForm: () => set({
+        commentText: "",
+        commentSentiment: "Neutral",
+        commentChartIdx: null,
+        showCommentSheet: false
       }),
     }),
     {
       name: 'market-pulse-storage',
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          // Sanitization: Ensure critical arrays are never undefined/null
+          if (!Array.isArray(state.userComments)) state.userComments = [];
+          if (!Array.isArray(state.watchlistAssets)) state.watchlistAssets = [];
+          if (!Array.isArray(state.pinnedAssets)) state.pinnedAssets = [];
+          if (!state.language) state.language = "English";
+          if (typeof state.isProUnlocked !== 'boolean') state.isProUnlocked = false;
+
+          const todayKey = getAiPulseDateKey();
+          if (!state.aiPulseCreditDate) state.aiPulseCreditDate = todayKey;
+          if (typeof state.aiPulseCredits !== 'number' || Number.isNaN(state.aiPulseCredits)) {
+            state.aiPulseCredits = AI_PULSE_FREE_LIMIT;
+          }
+          if (!state.isProUnlocked && state.aiPulseCreditDate !== todayKey) {
+            state.aiPulseCreditDate = todayKey;
+            state.aiPulseCredits = AI_PULSE_FREE_LIMIT;
+          }
+          state.aiPulseCredits = Math.max(0, Math.min(AI_PULSE_FREE_LIMIT, state.aiPulseCredits));
+
+          // Fix potentially missing properties in older persisted comments
+          state.userComments = state.userComments.map(c => ({
+            ...c,
+            sentiment: c.sentiment || 'Neutral',
+            timestamp: c.timestamp || Date.now(),
+            chartIndex: c.chartIndex ?? 0
+          }));
+        }
+      },
       partialize: (state) => ({
         // Only persist these fields
         isLoggedIn: state.isLoggedIn,
@@ -366,12 +430,15 @@ export const useAppStore = create<AppStore>()(
         showAIConsensus: state.showAIConsensus,
         watchlistLayout: state.watchlistLayout,
         currency: state.currency,
+        aiPulseCredits: state.aiPulseCredits,
+        aiPulseCreditDate: state.aiPulseCreditDate,
+        isProUnlocked: state.isProUnlocked,
       }),
       // Migrate from old individual localStorage keys
       merge: (persistedState: unknown, currentState: AppStore) => {
         const persisted = persistedState as Partial<AppStore> | null;
         const merged = { ...currentState, ...(persisted || {}) };
-        
+
         // If no persisted data, try to migrate from old keys
         if (!persisted || Object.keys(persisted).length === 0) {
           try {
@@ -379,7 +446,7 @@ export const useAppStore = create<AppStore>()(
             const oldPinned = localStorage.getItem('pinnedAssets');
             const oldComments = localStorage.getItem('userComments');
             const oldProfilePic = localStorage.getItem('profilePicture');
-            
+
             if (oldWatchlist) merged.watchlistAssets = JSON.parse(oldWatchlist);
             if (oldPinned) merged.pinnedAssets = JSON.parse(oldPinned);
             if (oldComments) merged.userComments = JSON.parse(oldComments);
@@ -388,7 +455,7 @@ export const useAppStore = create<AppStore>()(
             console.error('Migration error:', e);
           }
         }
-        
+
         return merged;
       },
     }

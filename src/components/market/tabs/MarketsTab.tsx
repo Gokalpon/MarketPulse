@@ -79,18 +79,21 @@ export function MarketsTab({
   const PERIODS = ["1D", "1W", "1M", "1Y"];
 
   const getPeriodChange = (asset: any) => {
+    if (!asset || !asset.data) return 0;
     const data = asset.data?.[moversPeriod];
-    if (!data || data.length < 2) return parseFloat(asset.change) || 0;
+    if (!data || !Array.isArray(data) || data.length < 2 || data[0] === 0) {
+      return parseFloat(asset?.change || "0") || 0;
+    }
     return ((data[data.length - 1] - data[0]) / data[0]) * 100;
   };
 
   const activeMarket = MARKETS.find(m => m.id === selectedMarket) || MARKETS[0];
-  const marketAssets = ASSETS.filter(activeMarket.filter);
+  const marketAssets = (ASSETS || []).filter(activeMarket?.filter || (() => true));
 
-  const sortedWatchlist = [...ASSETS.filter((a) => watchlistAssets.includes(a.id))].sort((a, b) => {
-    if (watchlistSort === "gainers") return parseFloat(b.change) - parseFloat(a.change);
-    if (watchlistSort === "losers") return parseFloat(a.change) - parseFloat(b.change);
-    if (watchlistSort === "az") return a.name.localeCompare(b.name);
+  const sortedWatchlist = [...(ASSETS || []).filter((a) => (watchlistAssets || []).includes(a.id))].sort((a, b) => {
+    if (watchlistSort === "gainers") return (parseFloat(b?.change || "0") || 0) - (parseFloat(a?.change || "0") || 0);
+    if (watchlistSort === "losers") return (parseFloat(a?.change || "0") || 0) - (parseFloat(b?.change || "0") || 0);
+    if (watchlistSort === "az") return (a?.name || "").localeCompare(b?.name || "");
     return 0;
   });
 

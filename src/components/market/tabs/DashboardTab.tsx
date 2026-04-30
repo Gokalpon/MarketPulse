@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useCountUpAnimation } from "@/hooks/useCountUpAnimation";
 import {
   TrendingUp, TrendingDown, ChevronDown, ChevronRight,
-  Brain, Edit3, ExternalLink, WifiOff, Plus, X, Settings,
+  Brain, Edit3, ExternalLink, WifiOff, Plus, X, Settings, Lock, MessageCircle,
 } from "lucide-react";
 import { GlowButton } from "@/components/market/GlowButton";
+import { haptic } from "@/services/hapticService";
 
 function LiveDot() {
   const colors = ["#3b82f6", "#22c55e", "#ffffff", "#22c55e", "#3b82f6"];
@@ -44,9 +45,14 @@ interface DashboardTabProps {
   handleChartTap: (e: React.MouseEvent<HTMLDivElement>) => void;
   openCommentSheet: (idx?: number) => void;
   handlePointClick: (point: any) => void;
+  openPointDetail?: (point: any) => void;
   isAnalyzing: boolean;
   aiAnalysis: string | null;
-  generateAIAnalysis: () => void;
+  generateAIAnalysis: () => Promise<boolean>;
+  aiPulseCredits: number;
+  aiPulseLimit: number;
+  isProUnlocked: boolean;
+  onProClick: () => void;
   setShowMyComments: (v: boolean) => void;
   activeUserComments: any[];
   setIsMenuOpen: (v: boolean) => void;
@@ -55,6 +61,28 @@ interface DashboardTabProps {
   setCurrency: (c: string) => void;
 }
 
+type ChartClusterPosition = {
+  avgPrice?: number | string;
+};
+
+type DashboardInsightPoint = {
+  idx: number;
+  type?: string;
+  sentiment?: "Positive" | "Negative" | "Neutral";
+  translation?: string;
+  newsUrl?: string;
+};
+
+type DashboardSentimentCluster = ChartClusterPosition & {
+  avgIdx: number;
+  bindingKind?: "exact_price" | "inferred_time" | "session_context" | "unbound";
+  comments?: Array<{ text?: string; sentiment?: "Positive" | "Negative" | "Neutral"; likes?: number }>;
+  count?: number;
+  origin?: "user" | "external" | string;
+  sentiment?: "Positive" | "Negative" | "Neutral";
+  translation?: string;
+};
+
 export function DashboardTab({
   language, t, activeAsset, activeData,
   livePrice, liveChange, liveIsUp, isLive,
@@ -62,7 +90,9 @@ export function DashboardTab({
   showNewsBubbles, setShowNewsBubbles, showAIConsensus, setShowAIConsensus,
   activeTranslations, selectedPoint, setSelectedPoint, sentimentClusters,
   chartCrosshair, setChartCrosshair, handleChartTap, openCommentSheet, handlePointClick,
+  openPointDetail,
   isAnalyzing, aiAnalysis, generateAIAnalysis, setShowMyComments, activeUserComments,
+  aiPulseCredits, aiPulseLimit, isProUnlocked, onProClick,
   setIsMenuOpen, setIsAssetPickerOpen,
   currency, setCurrency,
 }: DashboardTabProps) {
@@ -98,6 +128,10 @@ export function DashboardTab({
   const [matchingPriceOptions, setMatchingPriceOptions] = useState<{ visIdx: number; globalIdx: number; date: Date }[] | null>(null);
   const [dateListExpanded, setDateListExpanded] = useState(false);
   const [dateSearch, setDateSearch] = useState("");
+  const [pullDistance, setPullDistance] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showGhostFinger, setShowGhostFinger] = useState(() => !localStorage.getItem("ghostFingerShown"));
+  const startTouchY = useRef(0);
 
   const prevPriceRef = useRef(livePrice);
   const [animStart, setAnimStart] = useState(livePrice);
@@ -126,6 +160,47 @@ export function DashboardTab({
     return activeData.slice(Math.max(0, zoomRange.start), Math.min(activeData.length, zoomRange.end));
   }, [activeData, zoomRange]);
   const zoomStart = zoomRange?.start ?? 0;
+  const isVisibleIndex = useCallback((idx?: number) => {
+    if (!Number.isFinite(idx)) return false;
+    const vi = Number(idx) - zoomStart;
+    return vi >= 0 && vi < visibleData.length;
+  }, [visibleData.length, zoomStart]);
+
+  const displayedInsightPoints = useMemo<DashboardInsightPoint[]>(() => {
+    const visiblePoints = (activeTranslations as DashboardInsightPoint[]).filter((point) => isVisibleIndex(point.idx));
+    const news = showNewsBubbles
+      ? visiblePoints.filter((point) => point.type === "news").slice(0, 2)
+      : [];
+    const consensus = showAIConsensus
+      ? visiblePoints.filter((point) => point.type !== "news").slice(0, 5)
+      : [];
+    return [...news, ...consensus];
+  }, [activeTranslations, isVisibleIndex, showAIConsensus, showNewsBubbles]);
+
+  const displayedSentimentClusters = useMemo<DashboardSentimentCluster[]>(() => {
+    const rankCluster = (cluster: DashboardSentimentCluster) => {
+      if (cluster.origin !== "external") return 3;
+      if (cluster.bindingKind === "exact_price") return 0;
+      if (cluster.bindingKind === "inferred_time") return 1;
+      return 2;
+    };
+
+    return (sentimentClusters as DashboardSentimentCluster[])
+      .filter((cluster) => (cluster.origin !== "external" || showAIConsensus) && isVisibleIndex(cluster.avgIdx))
+      .sort((a, b) => rankCluster(a) - rankCluster(b) || (b.count ?? 0) - (a.count ?? 0))
+      .slice(0, 5);
+  }, [isVisibleIndex, sentimentClusters, showAIConsensus]);
+
+  const visibleCommentCount = useMemo(
+    () => displayedSentimentClusters.reduce((sum, cluster) => sum + (cluster.count ?? cluster.comments?.length ?? 1), 0),
+    [displayedSentimentClusters]
+  );
+  const externalCommentCount = useMemo(
+    () => displayedSentimentClusters
+      .filter((cluster) => cluster.origin === "external")
+      .reduce((sum, cluster) => sum + (cluster.count ?? cluster.comments?.length ?? 1), 0),
+    [displayedSentimentClusters]
+  );
 
   const rawMin = visibleData.length > 0 ? Math.min(...visibleData) : 0;
   const rawMax = visibleData.length > 0 ? Math.max(...visibleData) : 1;
@@ -137,6 +212,11 @@ export function DashboardTab({
 
   const getX = (i: number) => visibleData.length > 1 ? 4 + (i / (visibleData.length - 1)) * 92 : 50;
   const getY = (v: number) => 8 + (100 - ((v - minVal) / range) * 100) * 0.84;
+  const getClusterY = (cluster: ChartClusterPosition, fallbackIndex: number) => {
+    const avgPrice = Number(cluster.avgPrice);
+    const markerPrice = Number.isFinite(avgPrice) ? avgPrice : visibleData[fallbackIndex];
+    return Math.max(3, Math.min(97, getY(markerPrice)));
+  };
 
   const getPointDate = (visIdx: number): Date => {
     const intervalMs: Record<string, number> = { "1H": 5*60*1000, "4H": 30*60*1000, "1D": 15*60*1000, "3D": 60*60*1000, "1W": 60*60*1000, "2W": 24*60*60*1000, "1M": 24*60*60*1000, "3M": 24*60*60*1000, "6M": 7*24*60*60*1000, "1Y": 7*24*60*60*1000, "2Y": 30*24*60*60*1000, "5Y": 30*24*60*60*1000, "ALL": 30*24*60*60*1000 };
@@ -221,9 +301,113 @@ export function DashboardTab({
   };
   const handlePinchEnd = () => { pinchRef.current = null; };
 
+  // Pull to refresh logic
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (chartExpanded) return;
+    if (window.scrollY === 0) {
+      startTouchY.current = e.touches[0].clientY;
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (chartExpanded || startTouchY.current === 0) return;
+    const currentY = e.touches[0].clientY;
+    const diff = currentY - startTouchY.current;
+    if (diff > 0 && window.scrollY === 0) {
+      setPullDistance(Math.min(diff * 0.4, 80));
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (pullDistance > 60) {
+      setIsRefreshing(true);
+      haptic.success();
+      setTimeout(() => {
+        setIsRefreshing(false);
+        setPullDistance(0);
+      }, 1500);
+    } else {
+      setPullDistance(0);
+    }
+    startTouchY.current = 0;
+  };
+
+  useEffect(() => {
+    if (showGhostFinger) {
+      const timer = setTimeout(() => {
+        setShowGhostFinger(false);
+        localStorage.setItem("ghostFingerShown", "true");
+      }, 6000);
+      return () => clearTimeout(timer);
+    }
+  }, [showGhostFinger]);
+
+  const remainingAiCredits = isProUnlocked ? aiPulseLimit : Math.max(0, Math.min(aiPulseLimit, aiPulseCredits));
+  const aiCreditsUsed = isProUnlocked ? 0 : Math.max(0, aiPulseLimit - remainingAiCredits);
+  const aiActionLabel = isProUnlocked
+    ? "Pro Pulse"
+    : remainingAiCredits > 0
+      ? t.refreshAnalysis
+      : (language === "Turkish" ? "Pro'ya Gec" : "Go Pro");
+  const aiCreditsText = isProUnlocked
+    ? (language === "Turkish" ? "Sinirsiz Pro erisim" : "Unlimited Pro access")
+    : (language === "Turkish" ? `${remainingAiCredits}/${aiPulseLimit} ucretsiz pulse kaldi` : `${remainingAiCredits}/${aiPulseLimit} free pulses left`);
+  const getClusterColor = (cluster: DashboardSentimentCluster) => {
+    if (cluster.origin !== "external") return "#B24BF3";
+    return "#FFFFFF";
+  };
+  const getClusterShadow = (cluster: DashboardSentimentCluster) => {
+    if (cluster.origin !== "external") return "0 10px 30px rgba(178,75,243,0.6)";
+    return "0 10px 30px rgba(255,255,255,0.28)";
+  };
+  const getClusterLabel = (cluster: DashboardSentimentCluster) => {
+    if (cluster.origin !== "external") return cluster.sentiment;
+    return language === "Turkish" ? "ORTALAMA" : "CONSENSUS";
+  };
+  const getClusterTextColor = (cluster: DashboardSentimentCluster) => {
+    if (cluster.origin === "external") return "#030608";
+    return "#FFFFFF";
+  };
+  const getClusterConsensusText = (cluster: DashboardSentimentCluster) => {
+    if (cluster.origin !== "external") {
+      return cluster.translation || cluster.comments?.[0]?.text || "Community sentiment";
+    }
+
+    if (cluster.sentiment === "Positive") {
+      return language === "Turkish"
+        ? "Ortalama yorum bu seviyede pozitif beklentinin öne çıktığını gösteriyor."
+        : "Average consensus shows a bullish bias around this level.";
+    }
+
+    if (cluster.sentiment === "Negative") {
+      return language === "Turkish"
+        ? "Ortalama yorum bu seviyede risk ve satış baskısının öne çıktığını gösteriyor."
+        : "Average consensus shows risk and selling pressure around this level.";
+    }
+
+    return language === "Turkish"
+      ? "Ortalama yorum bu seviyede net yön yerine bekle-gör havası olduğunu gösteriyor."
+      : "Average consensus shows a wait-and-see mood around this level.";
+  };
+
   return (
-    <motion.div key="dashboard" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col">
-      <div className={`${chartWide ? "" : "px-4"} mt-2 transition-all duration-500`}>
+    <motion.div
+      key="dashboard" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="flex flex-col select-none"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Pull to Refresh Indicator */}
+      <div className="absolute top-0 inset-x-0 flex justify-center pointer-events-none z-[200]" style={{ height: pullDistance, opacity: pullDistance / 60 }}>
+        <motion.div
+          animate={isRefreshing ? { rotate: 360 } : {}}
+          transition={isRefreshing ? { repeat: Infinity, duration: 1, ease: "linear" } : {}}
+          className="mt-4 w-6 h-6 rounded-full border-2 border-[var(--mp-cyan)] border-t-transparent shadow-[0_0_10px_rgba(0,255,255,0.4)]"
+        />
+      </div>
+
+      <div className={`${chartWide ? "" : "px-4"} mt-2 transition-all duration-500`} style={{ transform: `translateY(${pullDistance}px)` }}>
         <div className={`mp-glass-card ${chartWide ? "rounded-none" : "rounded-[32px]"} p-6 relative shadow-lg transition-all duration-500`}>
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
@@ -291,14 +475,26 @@ export function DashboardTab({
           <div className="relative mt-8 w-full transition-all duration-500" style={{ height: chartHeightValues[chartHeightLevel] + 20 }}>
             <div className="absolute inset-0 bottom-5 flex">
 
-              <div
-                ref={chartDivRef}
-                className="flex-1 relative"
-                onClick={handleChartTap}
-                onTouchStart={handlePinchStart}
-                onTouchMove={handlePinchMove}
-                onTouchEnd={handlePinchEnd}
-              >
+                <div
+                  ref={chartDivRef}
+                  className="flex-1 relative"
+                  onClick={(e) => {
+                    handleChartTap(e);
+                    if (showGhostFinger) setShowGhostFinger(false);
+                  }}
+                  onTouchStart={handlePinchStart}
+                  onTouchMove={handlePinchMove}
+                  onTouchEnd={handlePinchEnd}
+                >
+                  {/* Ghost Finger Guide */}
+                  {showGhostFinger && (
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-[150]">
+                      <div className="mp-ghost-finger relative">
+                         <div className="w-8 h-8 rounded-full bg-white/20 border-2 border-white/40 shadow-[0_0_20px_rgba(255,255,255,0.3)] backdrop-blur-md" />
+                         <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-[8px] font-black tracking-widest text-white/40">EXPLORE CHART</div>
+                      </div>
+                    </div>
+                  )}
                 <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full overflow-visible" preserveAspectRatio="none">
                   <defs>
                     <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
@@ -334,7 +530,7 @@ export function DashboardTab({
                 </svg>
 
                 {/* NEWS / CONSENSUS dots — CSS div, her zaman mükemmel yuvarlak */}
-                {(showNewsBubbles || showAIConsensus) && activeTranslations.map((point: any) => {
+                {displayedInsightPoints.map((point) => {
                   const isNews = point.type === "news";
                   if (isNews && !showNewsBubbles) return null;
                   if (!isNews && !showAIConsensus) return null;
@@ -345,6 +541,7 @@ export function DashboardTab({
                   return (
                     <div
                       key={`dot-css-${point.idx}`}
+                      data-testid={isNews ? "news-marker" : "ai-consensus-marker"}
                       className="absolute pointer-events-none z-10"
                       style={{
                         left: `${getX(xi)}%`,
@@ -353,6 +550,7 @@ export function DashboardTab({
                         width: 14, height: 14,
                         borderRadius: "50%",
                         background: isNews ? "linear-gradient(135deg, #00FFFF, #00FF87)" : "white",
+                        boxShadow: isNews ? "0 0 18px rgba(0,255,255,0.32)" : "0 0 18px rgba(255,255,255,0.18)",
                         flexShrink: 0,
                       }}
                     />
@@ -360,29 +558,29 @@ export function DashboardTab({
                 })}
 
                 {/* SENTIMENT CLUSTER dots — CSS div, her zaman mükemmel yuvarlak */}
-                {sentimentClusters.map((cluster, ci) => {
+                {displayedSentimentClusters.map((cluster, ci) => {
                   if (selectedPoint?.avgIdx === cluster.avgIdx) return null;
                   const vi = cluster.avgIdx - zoomStart;
                   if (vi < 0 || vi >= visibleData.length) return null;
                   const xi = Math.max(0, Math.min(visibleData.length - 1, vi));
                   const size = cluster.count >= 5 ? 20 : cluster.count >= 2 ? 18 : 14;
+                  const color = getClusterColor(cluster);
                   return (
                     <div
                       key={`dot-cluster-css-${ci}`}
+                      data-testid="comment-consensus-marker"
                       className="absolute pointer-events-none z-10 flex items-center justify-center"
                       style={{
                         left: `${getX(xi)}%`,
-                        top: `${getY(visibleData[xi] ?? cluster.avgPrice)}%`,
+                        top: `${getClusterY(cluster, xi)}%`,
                         transform: "translate(-50%, -50%)",
                         width: size, height: size,
                         borderRadius: "50%",
-                        background: "#B24BF3",
+                        background: color,
+                        border: cluster.bindingKind === "session_context" ? "1px solid rgba(255,255,255,0.24)" : "none",
                         flexShrink: 0,
                       }}
                     >
-                      {cluster.count > 1 && (
-                        <span style={{ fontSize: 4, fontWeight: 900, color: "white", lineHeight: 1 }}>{cluster.count}</span>
-                      )}
                     </div>
                   );
                 })}
@@ -404,7 +602,7 @@ export function DashboardTab({
                 )}
 
                 {/* News / Consensus overlay — parent sabit konumda, içerik değişir */}
-                {(showNewsBubbles || showAIConsensus) && activeTranslations.map((point: any) => {
+                {displayedInsightPoints.map((point) => {
                   const isSelected = selectedPoint?.idx === point.idx;
                   const vi = point.idx - zoomStart;
                   if (vi < 0 || vi >= visibleData.length) return null;
@@ -425,8 +623,14 @@ export function DashboardTab({
                           initial={{ scale: 0.4, opacity: 0 }}
                           animate={{ scale: 1, opacity: 1 }}
                           transition={{ type: "spring", stiffness: 400, damping: 28 }}
-                          className={`w-21 h-21 rounded-full shrink-0 flex items-center justify-center overflow-hidden cursor-pointer ${isNews ? "mp-gradient-badge shadow-[0_10px_30px_rgba(0,255,255,0.4)]" : "bg-foreground shadow-[0_10px_30px_rgba(255,255,255,0.3)]"}`}
-                          style={{ width: 110, height: 110 }}
+                          className={`w-21 h-21 rounded-full shrink-0 flex items-center justify-center overflow-hidden cursor-pointer ${isNews ? "" : "bg-foreground shadow-[0_10px_30px_rgba(255,255,255,0.3)]"}`}
+                          style={{
+                            width: 110,
+                            height: 110,
+                            ...(isNews
+                              ? { background: "linear-gradient(135deg, #00FFFF, #00FF87)", boxShadow: "0 10px 30px rgba(0,255,255,0.38)" }
+                              : {}),
+                          }}
                           onClick={(e) => { e.stopPropagation(); handlePointClick(point); }}
                         >
                           <div className="p-2 text-center flex flex-col items-center justify-center h-full w-full relative">
@@ -459,13 +663,15 @@ export function DashboardTab({
                 })}
 
                 {/* Clustered user comment sentiment markers */}
-                {sentimentClusters.map((cluster, ci) => {
+                {displayedSentimentClusters.map((cluster, ci) => {
                   const isSelected = selectedPoint?.avgIdx === cluster.avgIdx;
                   const vi = cluster.avgIdx - zoomStart;
                   if (vi < 0 || vi >= visibleData.length) return null;
                   const safeIdx = Math.max(0, Math.min(visibleData.length - 1, vi));
                   const xPct = getX(safeIdx);
-                  const yPct = getY(visibleData[safeIdx] || cluster.avgPrice);
+                  const yPct = getClusterY(cluster, safeIdx);
+                  const color = getClusterColor(cluster);
+                  const textColor = getClusterTextColor(cluster);
                   return (
                     <div
                       key={`cluster-${ci}`}
@@ -477,14 +683,14 @@ export function DashboardTab({
                           initial={{ scale: 0.4, opacity: 0 }}
                           animate={{ scale: 1, opacity: 1 }}
                           transition={{ type: "spring", stiffness: 400, damping: 28 }}
-                          className="mp-gradient-badge-purple rounded-full shrink-0 flex items-center justify-center overflow-hidden cursor-pointer shadow-[0_10px_30px_rgba(178,75,243,0.6)]"
-                          style={{ width: 110, height: 110 }}
+                          className="rounded-full shrink-0 flex items-center justify-center overflow-hidden cursor-pointer"
+                          style={{ width: 110, height: 110, background: color, boxShadow: getClusterShadow(cluster) }}
                           onClick={(e) => { e.stopPropagation(); handlePointClick(cluster); }}
                         >
                           <div className="p-2 text-center flex flex-col items-center justify-center h-full w-full relative">
-                            <div className="text-[9px] font-black uppercase tracking-wider text-white mb-0.5">{cluster.sentiment}</div>
-                            <div className="text-[11px] font-bold leading-snug line-clamp-2 text-white mb-1">{cluster.translation || "Community sentiment"}</div>
-                            <div className="absolute bottom-2 text-white/50"><ChevronDown className="w-3 h-3" strokeWidth={3} /></div>
+                            <div className="text-[9px] font-black uppercase tracking-wider mb-0.5" style={{ color: textColor }}>{getClusterLabel(cluster)}</div>
+                            <div className="text-[11px] font-bold leading-snug line-clamp-2 mb-1" style={{ color: textColor }}>{getClusterConsensusText(cluster)}</div>
+                            <div className="absolute bottom-2" style={{ color: cluster.origin === "external" && cluster.bindingKind !== "session_context" ? "rgba(0,0,0,0.45)" : "rgba(255,255,255,0.5)" }}><ChevronDown className="w-3 h-3" strokeWidth={3} /></div>
                           </div>
                         </motion.div>
                       ) : (
@@ -530,7 +736,7 @@ export function DashboardTab({
       <div className="px-6 mt-6 flex flex-col gap-4 w-full">
         <div className="flex items-center gap-1 w-full relative">
           {customTimeframes.map((tf) => (
-            <GlowButton key={tf} onClick={() => setTimeframe(tf)} glowSize={60} className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold transition-all text-center ${timeframe === tf ? "bg-foreground text-background" : "text-[var(--mp-text-secondary)] hover:text-foreground bg-white/5"}`}>{tf}</GlowButton>
+            <GlowButton key={tf} onClick={() => { haptic.light(); setTimeframe(tf); }} glowSize={60} className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold transition-all text-center ${timeframe === tf ? "bg-foreground text-background" : "text-[var(--mp-text-secondary)] hover:text-foreground bg-white/5"}`}>{tf}</GlowButton>
           ))}
           <button onClick={() => setShowTfPicker(v => !v)} className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg bg-white/[0.06] text-white/40 hover:text-white/80 transition-all ml-1">
             <Settings className="w-3.5 h-3.5" />
@@ -556,21 +762,69 @@ export function DashboardTab({
           )}
         </div>
         <div className="flex justify-center gap-2">
-          <GlowButton onClick={() => setShowNewsBubbles(!showNewsBubbles)} className={`flex-1 px-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wide whitespace-nowrap transition-all border ${showNewsBubbles ? "bg-foreground text-background border-foreground" : "bg-white/5 text-white/60 border-white/10"}`}>
-            {showNewsBubbles ? t.hideNews : t.showNews}
+          <GlowButton onClick={() => setShowNewsBubbles(!showNewsBubbles)} className={`flex-1 px-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wide whitespace-nowrap transition-all border ${showNewsBubbles ? "bg-white text-background border-white shadow-[0_0_15px_rgba(255,255,255,0.18)]" : "bg-white/[0.06] text-white/50 hover:text-white/70 hover:bg-white/[0.09] border-white/10"}`}>
+            News
           </GlowButton>
-          <GlowButton onClick={() => setShowAIConsensus(!showAIConsensus)} className={`flex-1 px-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wide whitespace-nowrap transition-all border ${showAIConsensus ? "bg-foreground text-background border-foreground" : "bg-white/5 text-white/60 border-white/10"}`}>
-            {showAIConsensus ? t.hideConsensus : t.showConsensus}
+          <GlowButton onClick={() => setShowAIConsensus(!showAIConsensus)} className={`flex-1 px-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wide whitespace-nowrap transition-all border ${showAIConsensus ? "bg-white text-background border-white shadow-[0_0_15px_rgba(255,255,255,0.18)]" : "bg-white/[0.06] text-white/50 hover:text-white/70 hover:bg-white/[0.09] border-white/10"}`}>
+            AI Consensus
           </GlowButton>
-          <GlowButton onClick={() => setShowMyComments(true)} className={`flex-1 px-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wide whitespace-nowrap transition-all border ${activeUserComments.length > 0 ? "mp-gradient-badge-purple text-white border-transparent shadow-[0_0_15px_rgba(178,75,243,0.3)]" : "bg-white/5 text-white/60 border-white/10"}`}>
+          <GlowButton onClick={() => setShowMyComments(true)} className={`flex-1 px-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wide whitespace-nowrap transition-all border ${activeUserComments.length > 0 ? "mp-gradient-badge-purple text-white border-transparent shadow-[0_0_15px_rgba(178,75,243,0.3)]" : "bg-white/[0.06] text-white/50 hover:text-white/70 hover:bg-white/[0.09] border-white/10"}`}>
             {language === "Turkish" ? "Yorumlarım" : "My Comments"}
           </GlowButton>
+        </div>
+
+        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.045] px-3.5 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/[0.06] text-white/60">
+                <MessageCircle className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-[9px] font-black uppercase tracking-[0.18em] text-white/35">
+                  {language === "Turkish" ? "Yorum Akisi" : "Comment Flow"}
+                </div>
+                <div className="mt-1 truncate text-[11px] font-semibold text-white/65">
+                  {visibleCommentCount > 0
+                    ? (language === "Turkish" ? `${visibleCommentCount} yorum grafikte isaretli` : `${visibleCommentCount} comments marked on chart`)
+                    : (language === "Turkish" ? "Gercek yorum yok. Analiz cek veya ilk yorumu ekle." : "No real comments yet. Pull analysis or add the first one.")}
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                haptic.medium();
+                if (displayedSentimentClusters.length > 0) {
+                  if (openPointDetail) openPointDetail(displayedSentimentClusters[0]);
+                  else handlePointClick(displayedSentimentClusters[0]);
+                  return;
+                }
+                if (activeUserComments.length > 0) {
+                  setShowMyComments(true);
+                  return;
+                }
+                void generateAIAnalysis();
+              }}
+              disabled={isAnalyzing}
+              className="shrink-0 rounded-xl bg-white/[0.08] px-3 py-2 text-[9px] font-black uppercase tracking-[0.12em] text-white/65 transition-all hover:bg-white/[0.12] hover:text-white disabled:opacity-45"
+            >
+              {isAnalyzing
+                ? (language === "Turkish" ? "Cekiliyor" : "Pulling")
+                : visibleCommentCount > 0
+                  ? (language === "Turkish" ? "Gor" : "View")
+                  : (language === "Turkish" ? "Analiz Cek" : "Pull")}
+            </button>
+          </div>
+          {externalCommentCount > 0 && (
+            <div className="mt-2 text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--mp-cyan)]/80">
+              {language === "Turkish" ? `${externalCommentCount} dis kaynak yorumu` : `${externalCommentCount} external comments`}
+            </div>
+          )}
         </div>
 
         {/* Yorum Ekle */}
         <motion.div layout className="overflow-hidden">
           <GlowButton
-            onClick={() => { setShowCommentInput(v => !v); setCommentPriceInput(""); }}
+            onClick={() => { haptic.medium(); setShowCommentInput(v => !v); setCommentPriceInput(""); }}
             className={`w-full py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 backdrop-blur-md ${showCommentInput ? "bg-white/10 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]" : "bg-white/[0.06] text-white/50 hover:text-white/70 hover:bg-white/[0.09] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"}`}
           >
             {showCommentInput ? <X className="w-3 h-3" strokeWidth={3} /> : <Plus className="w-3 h-3" strokeWidth={3} />}
@@ -745,16 +999,51 @@ export function DashboardTab({
         </motion.div>
 
         {/* AI Analysis */}
-        <div className="mt-4 rounded-2xl p-4 backdrop-blur-md bg-white/[0.06] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+        <div className="mt-4 rounded-[24px] p-4 backdrop-blur-md bg-white/[0.06] border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Brain className="w-4 h-4" style={{ stroke: "url(#mpIconGrad)" }} />
               <span className="text-[10px] font-black uppercase tracking-widest text-white/70">{t.aiMarketPulse}</span>
             </div>
-            <button onClick={generateAIAnalysis} disabled={isAnalyzing} className="px-3 py-1.5 rounded-lg bg-white/5 text-white/60 text-[9px] font-black uppercase tracking-wider hover:bg-white/10 hover:text-white transition-all disabled:opacity-50">
-              {isAnalyzing ? t.analyzing : t.refreshAnalysis}
+            <button
+              onClick={() => {
+                haptic.medium();
+                if (!isProUnlocked && remainingAiCredits <= 0) {
+                  onProClick();
+                  return;
+                }
+                void generateAIAnalysis();
+              }}
+              disabled={isAnalyzing}
+              className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all disabled:opacity-50 ${!isProUnlocked && remainingAiCredits <= 0 ? "bg-white text-black hover:bg-white/90" : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"}`}
+            >
+              {isAnalyzing ? t.analyzing : aiActionLabel}
             </button>
           </div>
+          <button
+            onClick={isProUnlocked ? undefined : onProClick}
+            className="mb-3 flex w-full items-center justify-between gap-3 rounded-2xl border border-white/[0.07] bg-black/20 px-3 py-2 text-left"
+          >
+            <div className="flex min-w-0 items-center gap-2">
+              <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${isProUnlocked ? "mp-gradient-badge" : "bg-white/[0.06]"}`}>
+                {isProUnlocked ? <Brain className="h-3.5 w-3.5 text-black" /> : <Lock className="h-3.5 w-3.5 text-white/45" />}
+              </div>
+              <div className="min-w-0">
+                <div className="truncate text-[11px] font-black uppercase tracking-[0.12em] text-white/[0.68]">
+                  {isProUnlocked ? "Pro unlocked" : (language === "Turkish" ? "Gunluk AI kredisi" : "Daily AI credits")}
+                </div>
+                <div className="text-[9px] font-medium text-white/[0.35]">{aiCreditsText}</div>
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-1">
+              {Array.from({ length: aiPulseLimit }).map((_, index) => (
+                <span
+                  key={index}
+                  className={`h-1.5 w-5 rounded-full transition-all ${isProUnlocked || index >= aiCreditsUsed ? "bg-[var(--mp-cyan)] shadow-[0_0_8px_rgba(0,255,255,0.35)]" : "bg-white/10"}`}
+                />
+              ))}
+            </div>
+          </button>
           {aiAnalysis ? (
             <motion.p initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="text-[12px] text-foreground leading-relaxed italic">"{aiAnalysis}"</motion.p>
           ) : (

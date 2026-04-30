@@ -1,5 +1,7 @@
 # anatomy.md
 
+> Session additions: `preview.out` (Vite preview stdout log), `preview.err` (Vite preview stderr log), `backend.out` (backend stdout log), `backend.err` (backend stderr log), `server/services/chartDataService.js` (Yahoo chart point normalizer and timeframe mapper), `server/services/commentBindingService.js` (price/time/session comment binding and deterministic pulse scoring), `src/test/commentBindingService.test.ts` (unit coverage for exact price/time/session binding)
+
 > Auto-maintained by OpenWolf. Last scanned: 2026-04-10T23:45:47.944Z
 > Files: 524 tracked | Anatomy hits: 0 | Misses: 0
 
@@ -8,12 +10,8 @@
 - `.gitignore` — Git ignore rules (~31 tok)
 - `CLAUDE.md` — OpenWolf (~57 tok)
 - `components.json` (~124 tok)
-- `devserver.err` (~0 tok)
-- `devserver.out` (~0 tok)
 - `eslint.config.js` — ESLint flat configuration (~226 tok)
 - `index.html` — Market Pulse (~525 tok)
-- `liquid-animations.css` — Styles: 71 rules, 3 vars, 9 animations (~9076 tok)
-- `liquid-animations.html` — Premium Liquid Button Animations (~813 tok)
 - `package-lock.json` — npm lock file (~110012 tok)
 - `package.json` — Node.js package manifest (~992 tok)
 - `playwright-fixture.ts` — Re-export the base fixture from the package (~49 tok)
@@ -22,7 +20,6 @@
 - `README.md` — Project documentation (~158 tok)
 - `server.js` — API routes: GET (4 endpoints) (~1129 tok)
 - `tailwind.config.ts` — Tailwind CSS configuration (~857 tok)
-- `test-yf.mjs` — Declares yf (~143 tok)
 - `tsconfig.app.json` (~204 tok)
 - `tsconfig.json` — TypeScript configuration (~120 tok)
 - `tsconfig.node.json` (~144 tok)

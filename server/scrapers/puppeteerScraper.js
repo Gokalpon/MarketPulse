@@ -31,50 +31,46 @@ export async function closeBrowser() {
 export async function fetchTradingViewWithPuppeteer(symbol) {
   const tvSymbol = mapToTVSymbol(symbol);
   const comments = [];
-  
+
   try {
     const browser = await getBrowser();
     const page = await browser.newPage();
-    
+
     // Set viewport and user agent
     await page.setViewport({ width: 1920, height: 1080 });
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
-    
+
     // Navigate to TradingView ideas page
     const url = `https://www.tradingview.com/symbols/${tvSymbol}/ideas/`;
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
-    
+
     // Wait for content to load
     await page.waitForSelector('.tv-card, .idea-card, [data-name="idea-card"]', { timeout: 10000 }).catch(() => {});
-    
+
     // Extract ideas/comments
     const ideas = await page.evaluate(() => {
       const results = [];
-      
-      // Try multiple selectors
-      const cards = document.querySelectorAll('.tv-card, .idea-card, [data-name="idea-card"], .js-widget-idea-card');
-      
+      const cards = document.querySelectorAll('.tv-card, .idea-card, [data-name="idea-card"], .js-widget-idea-card, [class*="card-"], [data-card-type="idea"]');
+
       cards.forEach((card, i) => {
-        const titleEl = card.querySelector('.tv-card-title, .idea-title, h3, [data-name="idea-title"]');
-        const descEl = card.querySelector('.tv-card-description, .idea-description, p');
-        const authorEl = card.querySelector('.tv-card-author, .idea-author-name, [data-name="idea-author"]');
-        const labelEl = card.querySelector('.tv-card-label, .idea-label, [data-name="idea-label"]');
-        
+        const titleEl = card.querySelector('[class*="title-"], .tv-card-title, .idea-title, h3');
+        const descEl = card.querySelector('[class*="description-"], .tv-card-description, .idea-description, p');
+        const authorEl = card.querySelector('[class*="user-name-"], .tv-card-author, .author');
+        const labelEl = card.querySelector('[class*="badge-"], .tv-card-label, .idea-label');
+
         const title = titleEl?.textContent?.trim() || '';
         const desc = descEl?.textContent?.trim() || '';
-        const author = authorEl?.textContent?.trim() || 'TVTrader';
-        const label = labelEl?.textContent?.toLowerCase() || '';
-        
+
         if (title || desc) {
+          const author = authorEl?.textContent?.trim() || 'Analyst';
+          const label = labelEl?.textContent?.toLowerCase() || '';
+
           let sentiment = 'Neutral';
-          if (label.includes('long') || label.includes('bullish') || label.includes('buy')) {
-            sentiment = 'Positive';
-          } else if (label.includes('short') || label.includes('bearish') || label.includes('sell')) {
-            sentiment = 'Negative';
-          }
-          
+          if (label.includes('long') || label.includes('bull') || label.includes('buy')) sentiment = 'Positive';
+          else if (label.includes('short') || label.includes('bear') || label.includes('sell')) sentiment = 'Negative';
+
           results.push({
-            id: `tv_puppet_${Date.now()}_${i}`,
+            id: `tv_${Date.now()}_${i}`,
             user: author,
             text: title || desc.substring(0, 200),
             fullText: desc,
@@ -86,20 +82,20 @@ export async function fetchTradingViewWithPuppeteer(symbol) {
           });
         }
       });
-      
       return results;
     });
-    
+
+    console.log(`[Worker] TV found ${ideas.length} ideas for ${symbol}`);
     comments.push(...ideas);
-    
+
     await page.close();
-    
+
     console.log(`TradingView: Found ${ideas.length} ideas for ${tvSymbol}`);
-    
+
   } catch (error) {
     console.error('TradingView Puppeteer error:', error.message);
   }
-  
+
   return comments;
 }
 
@@ -159,35 +155,35 @@ export async function fetchInvestingWithPuppeteer(symbol) {
     // Go to the comments/commentary page
     const commentUrl = assetUrl.replace('-chart', '-commentary') + '#comments';
     await page.goto(commentUrl, { waitUntil: 'networkidle2', timeout: 60000 });
-    
+
     // Wait for comments
     await page.waitForSelector('.comment, .user-comment, .discussionComment', { timeout: 10000 }).catch(() => {});
-    
+
     // Extract comments
     const foundComments = await page.evaluate(() => {
       const results = [];
-      
+
       const commentEls = document.querySelectorAll('.comment, .user-comment, .discussionComment, .comment__body');
-      
+
       commentEls.forEach((el, i) => {
         const textEl = el.querySelector('.comment__text, .comment-text, .js-comment-text, p');
         const userEl = el.querySelector('.comment__username, .user-name, .js-user-name, .author');
         const dateEl = el.querySelector('.comment__date, .date, .js-date');
-        
+
         const text = textEl?.textContent?.trim() || '';
         const user = userEl?.textContent?.trim() || 'Investor';
-        
+
         if (text && text.length > 15) {
           // Simple sentiment analysis
           const lower = text.toLowerCase();
           let sentiment = 'Neutral';
-          
+
           if (lower.includes('buy') || lower.includes('bullish') || lower.includes('long') || lower.includes('up')) {
             sentiment = 'Positive';
           } else if (lower.includes('sell') || lower.includes('bearish') || lower.includes('short') || lower.includes('down')) {
             sentiment = 'Negative';
           }
-          
+
           results.push({
             id: `inv_puppet_${Date.now()}_${i}`,
             user,
@@ -200,74 +196,72 @@ export async function fetchInvestingWithPuppeteer(symbol) {
           });
         }
       });
-      
+
       return results;
     });
-    
+
     comments.push(...foundComments);
-    
+
     await page.close();
-    
+
     console.log(`Investing.com: Found ${foundComments.length} comments for ${symbol}`);
-    
+
   } catch (error) {
     console.error('Investing.com Puppeteer error:', error.message);
   }
-  
+
   return comments;
 }
 
 // StockTwits scraping
 export async function fetchStockTwitsComments(symbol) {
   const comments = [];
-  
+
   try {
     const browser = await getBrowser();
     const page = await browser.newPage();
-    
+
     await page.setViewport({ width: 1920, height: 1080 });
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
-    
+
     // StockTwits symbol page
     const stSymbol = symbol.replace('-USD', '').replace('.IS', '');
     const url = `https://stocktwits.com/symbol/${stSymbol}`;
-    
+
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
-    
+
     // Wait for messages
-    await page.waitForSelector('.message-body, .stx-message, [data-testid="message"]', { timeout: 10000 }).catch(() => {});
-    
+    const selector = '[data-testid="message-item"], .message-item, .stx-message';
+    await page.waitForSelector(selector, { timeout: 15000 }).catch(() => {});
+
     // Extract messages
     const messages = await page.evaluate(() => {
       const results = [];
-      
-      const msgEls = document.querySelectorAll('.message-body, .stx-message, [data-testid="message"], .message');
-      
-      msgEls.forEach((el, i) => {
-        const text = el.textContent?.trim() || '';
-        
-        // StockTwits often has explicit sentiment labels
-        const sentimentEl = el.closest('.message-item, .stx-message-item')?.querySelector('.sentiment, .bullish, .bearish');
-        const userEl = el.closest('.message-item, .stx-message-item')?.querySelector('.username, .user-name');
-        
-        let sentiment = 'Neutral';
-        if (sentimentEl) {
-          const cls = sentimentEl.className || '';
-          if (cls.includes('bullish')) sentiment = 'Positive';
-          else if (cls.includes('bearish')) sentiment = 'Negative';
-        } else {
-          // Fallback to text analysis
-          const lower = text.toLowerCase();
-          if (lower.includes('buy') || lower.includes('long') || lower.includes('bull')) sentiment = 'Positive';
-          else if (lower.includes('sell') || lower.includes('short') || lower.includes('bear')) sentiment = 'Negative';
-        }
-        
-        const user = userEl?.textContent?.trim() || 'STUser';
-        
-        if (text && text.length > 10) {
+      const msgItems = document.querySelectorAll('[data-testid="message-item"], .message-item, .stx-message-item, div[class*="message-item"]');
+
+      msgItems.forEach((el, i) => {
+        const textEl = el.querySelector('[data-testid="message-text"], .message-body, div[class*="message-body"]');
+        const userEl = el.querySelector('[data-testid="user-username"], .username, .user-name');
+        const sentimentEl = el.querySelector('[class*="sentiment-"], .bullish, .bearish');
+
+        const text = textEl?.textContent?.trim() || '';
+        if (text && text.length > 5) {
+          let sentiment = 'Neutral';
+          if (sentimentEl) {
+            const txt = sentimentEl.textContent?.toLowerCase() || '';
+            if (txt.includes('bullish')) sentiment = 'Positive';
+            else if (txt.includes('bearish')) sentiment = 'Negative';
+          }
+
+          if (sentiment === 'Neutral') {
+             const lower = text.toLowerCase();
+             if (lower.includes('buy') || lower.includes('long')) sentiment = 'Positive';
+             else if (lower.includes('sell') || lower.includes('short')) sentiment = 'Negative';
+          }
+
           results.push({
             id: `st_${Date.now()}_${i}`,
-            user,
+            user: userEl?.textContent?.trim() || 'Investor',
             text: text.substring(0, 250),
             sentiment,
             source: 'StockTwits',
@@ -276,70 +270,70 @@ export async function fetchStockTwitsComments(symbol) {
           });
         }
       });
-      
       return results;
     });
-    
+
+    console.log(`[Worker] StockTwits found ${messages.length} messages for ${symbol}`);
     comments.push(...messages);
-    
+
     await page.close();
-    
+
     console.log(`StockTwits: Found ${messages.length} messages for ${symbol}`);
-    
+
   } catch (error) {
     console.error('StockTwits error:', error.message);
   }
-  
+
   return comments;
 }
 
 // X/Twitter scraping (public tweets only, no API needed)
 export async function fetchXTwitterComments(symbol, assetName) {
   const comments = [];
-  
+
   try {
     const browser = await getBrowser();
     const page = await browser.newPage();
-    
+
     await page.setViewport({ width: 1920, height: 1080 });
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
-    
+
     // X/Twitter search
     const query = encodeURIComponent(`$${symbol.replace('-USD', '')} OR ${assetName} (crypto OR stock OR trading)`);
     const url = `https://twitter.com/search?q=${query}&src=typed_query&f=live`;
-    
+
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
-    
+
     // Wait for tweets
     await page.waitForSelector('[data-testid="tweet"], article', { timeout: 15000 }).catch(() => {});
-    
+
     // Extract tweets
     const tweets = await page.evaluate(() => {
       const results = [];
-      
+
       const tweetEls = document.querySelectorAll('[data-testid="tweet"], article');
-      
+
       tweetEls.forEach((el, i) => {
         const textEl = el.querySelector('[data-testid="tweetText"], .tweet-text');
         const userEl = el.querySelector('[data-testid="User-Name"], .username');
-        
+
         const text = textEl?.textContent?.trim() || '';
         const user = userEl?.textContent?.trim()?.split('@')[0]?.trim() || 'XUser';
-        
+
         if (text && text.length > 15) {
           // Sentiment analysis
           const lower = text.toLowerCase();
           let sentiment = 'Neutral';
-          
+
           const bullishWords = ['buy', 'long', 'bull', 'moon', 'pump', 'gain', 'up', 'call'];
           const bearishWords = ['sell', 'short', 'bear', 'dump', 'crash', 'loss', 'down', 'put'];
-          
+
           let bullishScore = bullishWords.filter(w => lower.includes(w)).length;
           let bearishScore = bearishWords.filter(w => lower.includes(w)).length;
-          
+
           if (bullishScore > bearishScore) sentiment = 'Positive';
           else if (bearishScore > bullishScore) sentiment = 'Negative';
-          
+
           results.push({
             id: `x_${Date.now()}_${i}`,
             user,
@@ -351,20 +345,20 @@ export async function fetchXTwitterComments(symbol, assetName) {
           });
         }
       });
-      
+
       return results;
     });
-    
+
     comments.push(...tweets);
-    
+
     await page.close();
-    
+
     console.log(`X/Twitter: Found ${tweets.length} tweets for ${symbol}`);
-    
+
   } catch (error) {
     console.error('X/Twitter error:', error.message);
   }
-  
+
   return comments;
 }
 
@@ -376,11 +370,11 @@ function mapToTVSymbol(symbol) {
     'BTC': 'BTCUSDT',
     'ETH': 'ETHUSDT'
   };
-  
+
   if (mapping[symbol]) return mapping[symbol];
-  
+
   const base = symbol.replace('-USD', '').replace('.IS', '');
   if (mapping[base]) return mapping[base];
-  
+
   return symbol;
 }

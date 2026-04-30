@@ -1,4 +1,4 @@
-import { QuoteDataSchema, TimeSeriesSchema, SearchQuoteSchema, MarketInsightSchema, safeParse } from '@/schemas/marketSchemas';
+import { ChartPointSeriesSchema, QuoteDataSchema, TimeSeriesSchema, SearchQuoteSchema, MarketInsightSchema, safeParse } from '@/schemas/marketSchemas';
 import { toast } from 'sonner';
 
 // Yahoo Finance proxy server endpoint (relative path — proxied by Vite in dev)
@@ -68,25 +68,64 @@ export async function fetchTimeSeries(
   try {
     const url = `${SERVER_BASE}/chart?symbol=${encodeURIComponent(symbol)}&interval=${config.interval}&range=${config.range}`;
     const res = await fetch(url);
-    
+
     if (!res.ok) {
       toast.error(`Veri yüklenemedi: ${res.status}`);
       return null;
     }
-    
+
     const rawData: unknown = await res.json();
     const result = safeParse(TimeSeriesSchema, rawData);
-    
+
     if (result.success === false) {
       console.error('TimeSeries validation error:', result.error);
       toast.error('Geçersiz veri formatı');
       return null;
     }
-    
+
     return result.data;
   } catch (error) {
     console.error('fetchTimeSeries error:', error);
     toast.error('Bağlantı hatası. Tekrar deneyin.');
+    return null;
+  }
+}
+
+export interface ChartPoint {
+  index: number;
+  timestamp: number;
+  price: number;
+  open?: number;
+  high?: number;
+  low?: number;
+  close?: number;
+  volume?: number;
+}
+
+export async function fetchTimeSeriesPoints(
+  assetId: string,
+  timeframe: string
+): Promise<ChartPoint[] | null> {
+  const symbol = SYMBOL_MAP[assetId] ?? assetId;
+  if (!symbol) return null;
+
+  const config = INTERVAL_MAP[timeframe] || INTERVAL_MAP["1D"];
+
+  try {
+    const url = `${SERVER_BASE}/chart?symbol=${encodeURIComponent(symbol)}&interval=${config.interval}&range=${config.range}&format=points`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+
+    const rawData: unknown = await res.json();
+    const result = safeParse(ChartPointSeriesSchema, rawData);
+    if (result.success === false) {
+      console.error('ChartPointSeries validation error:', result.error);
+      return null;
+    }
+
+    return result.data;
+  } catch (error) {
+    console.error('fetchTimeSeriesPoints error:', error);
     return null;
   }
 }
@@ -108,21 +147,21 @@ export async function fetchQuote(assetId: string): Promise<QuoteData | null> {
   const url = `${SERVER_BASE}/quote?symbol=${encodeURIComponent(symbol)}`;
   try {
     const res = await fetch(url);
-    
+
     if (!res.ok) {
       toast.error(`Fiyat verisi yüklenemedi: ${res.status}`);
       return null;
     }
-    
+
     const rawData: unknown = await res.json();
     const result = safeParse(QuoteDataSchema, rawData);
-    
+
     if (result.success === false) {
       console.error('Quote validation error:', result.error);
       toast.error('Geçersiz fiyat formatı');
       return null;
     }
-    
+
     return result.data as QuoteData;
   } catch (error) {
     console.error('fetchQuote error:', error);
@@ -134,9 +173,12 @@ export async function fetchQuote(assetId: string): Promise<QuoteData | null> {
 export interface MarketInsight {
   assetId: string;
   assetName: string;
+  timeframe?: string;
   pulseScore: number;
   sentiment: "Positive" | "Negative" | "Neutral";
   aiSummary: string;
+  categorySummaries?: Record<string, string>;
+  globalInsight?: string;
   categoryStats?: {
     bullish: { count: number; avgPrice: number };
     bearish: { count: number; avgPrice: number };
@@ -151,28 +193,78 @@ export interface MarketInsight {
     source: string;
     timestamp: number;
     priceAtComment?: number;
+    chartIndex?: number | null;
+    chartTimestamp?: number;
+    bindingKind?: "exact_price" | "inferred_time" | "session_context" | "unbound";
+    bindingLabel?: string;
+    bindingConfidence?: number;
+    displayMode?: "price_marker" | "session_marker" | "hidden";
+    url?: string;
   }[];
+  commentClusters?: {
+    comments: MarketInsight["comments"];
+    avgPrice: number;
+    avgIdx: number;
+    sentiment: "Positive" | "Negative" | "Neutral";
+    count: number;
+    translation?: string;
+    bindingKind?: "exact_price" | "inferred_time" | "session_context" | "unbound";
+    origin?: string;
+    sources?: string[];
+  }[];
+  bindingStats?: Record<string, number>;
 }
 
-export async function fetchMarketInsights(assetId: string, assetName: string, price: number): Promise<MarketInsight | null> {
+export async function fetchMarketInsights(
+  assetId: string,
+  assetName: string,
+  price: number,
+  retryCount = 0,
+  force = false,
+  timeframe = "1D"
+): Promise<MarketInsight | null> {
+  const MAX_RETRIES = 20; // Max 1 minute (3s * 20)
+  const POLL_INTERVAL = 3000; // 3 seconds
+
   try {
-    const url = `${SERVER_BASE}/insights?symbol=${encodeURIComponent(assetId)}&name=${encodeURIComponent(assetName)}&price=${price}`;
+    const shouldForce = retryCount === 0 && force;
+    const url = `${SERVER_BASE}/insights?symbol=${encodeURIComponent(assetId)}&name=${encodeURIComponent(assetName)}&price=${price}&timeframe=${encodeURIComponent(timeframe)}${shouldForce ? '&force=true' : ''}`;
     const res = await fetch(url);
-    
+
+    // Case 1: Processing (202 Accepted)
+    if (res.status === 202) {
+      if (retryCount >= MAX_RETRIES) {
+        toast.error('Analiz beklenenden uzun sürdü. Lütfen bir süre sonra tekrar deneyin.');
+        return null;
+      }
+
+      console.log(`[Insights] AI is thinking... retry ${retryCount + 1}/${MAX_RETRIES}`);
+      // Wait interval
+      await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL));
+      return fetchMarketInsights(assetId, assetName, price, retryCount + 1, false, timeframe);
+    }
+
     if (!res.ok) {
       toast.error('AI analizi yüklenemedi');
       return null;
     }
-    
+
     const rawData: unknown = await res.json();
+
+    // If we're polling and got a 'pending' status in body (redundancy check)
+    if (rawData && (rawData as any).status === 'pending') {
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      return fetchMarketInsights(assetId, assetName, price, retryCount + 1, false, timeframe);
+    }
+
     const result = safeParse(MarketInsightSchema, rawData);
-    
+
     if (result.success === false) {
       console.error('MarketInsight validation error:', result.error);
       toast.error('Geçersiz analiz formatı');
       return null;
     }
-    
+
     return result.data as MarketInsight;
   } catch (error) {
     console.error('fetchMarketInsights error:', error);

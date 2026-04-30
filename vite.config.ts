@@ -31,7 +31,7 @@ export default defineConfig(({ mode }) => ({
           // Vendor chunks
           "vendor-react": ["react", "react-dom"],
           "vendor-ui": ["@radix-ui/react-dialog", "@radix-ui/react-dropdown-menu", "@radix-ui/react-tabs"],
-          "vendor-motion": ["motion"],
+          "vendor-motion": ["motion/react"],
           "vendor-query": ["@tanstack/react-query"],
           // Feature chunks
           "market-tabs": [

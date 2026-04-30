@@ -14,6 +14,7 @@ export function AppHeader({ t, onMenuOpen, onSearchToggle }: AppHeaderProps) {
       className="fixed top-0 left-0 right-0 z-[100] px-6"
       style={{
         paddingTop: "calc(3rem + env(safe-area-inset-top))",
+        paddingBottom: "0.85rem",
         background: "rgba(5, 5, 8, 0.55)",
         backdropFilter: "blur(32px) saturate(160%)",
         WebkitBackdropFilter: "blur(32px) saturate(160%)",

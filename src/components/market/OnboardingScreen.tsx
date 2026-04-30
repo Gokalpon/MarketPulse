@@ -111,7 +111,7 @@ export const OnboardingScreen = ({ onLogin, language, setLanguage, t }: Onboardi
                   <span className="shine-layer pointer-events-none" aria-hidden="true"></span>
 
                   {/* Button text stays visible and changes color via CSS */}
-                  <span className="relative z-10 btn-text transition-all duration-[800ms] block">
+                  <span className="relative z-10 btn-text transition-all duration-700 block">
                     {t.getStarted}
                   </span>
                 </button>

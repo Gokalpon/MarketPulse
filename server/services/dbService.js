@@ -1,291 +1,180 @@
-import pg from 'pg';
-const { Pool } = pg;
+import { createClient } from '@supabase/supabase-js';
+import dotenv from 'dotenv';
+dotenv.config();
 
-// In-memory storage fallback
-const memoryStore = {
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+let supabase = null;
+let useMemoryStore = false;
+
+// In-memory storage for local development when Supabase is unavailable.
+const memoryDb = {
   insights: new Map(),
-  comments: []
+  comments: new Map()
 };
 
-let useMemoryDb = false;
-let pool = null;
-
-// PostgreSQL pool configuration
-try {
-  pool = new Pool({
-    host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT || 5432,
-    database: process.env.DB_NAME || 'marketpulse',
-    user: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD || 'password',
-    max: 20,
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 2000,
-  });
-
-  // Test connection
-  await pool.query('SELECT 1').catch(() => {
-    console.log('PostgreSQL not available, using in-memory database');
-    useMemoryDb = true;
-    pool = null;
-  });
-
-} catch (error) {
-  console.log('PostgreSQL initialization failed, using in-memory database');
-  useMemoryDb = true;
-  pool = null;
+function getInsightStorageKey(assetId, timeframe = '1D') {
+  return `${assetId}:${timeframe || '1D'}`;
 }
 
-// Initialize database tables
+try {
+  if (supabaseUrl && supabaseKey && !supabaseUrl.includes('placeholder')) {
+    supabase = createClient(supabaseUrl, supabaseKey);
+    console.log('[DB] Supabase client initialized.');
+} else {
+    throw new Error('Missing or invalid credentials');
+  }
+} catch (e) {
+  console.warn('[DB] Supabase connection failed, using in-memory storage:', e.message);
+  useMemoryStore = true;
+}
+
 export async function initDatabase() {
-  if (useMemoryDb || !pool) {
-    console.log('Using in-memory database (no persistence)');
-    return;
+  if (useMemoryStore) {
+    console.log('[DB] Running with in-memory storage.');
+    return Promise.resolve();
   }
-  
-  const client = await pool.connect();
+
   try {
-    // Market insights table
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS market_insights (
-        id SERIAL PRIMARY KEY,
-        asset_id VARCHAR(50) NOT NULL,
-        asset_name VARCHAR(100) NOT NULL,
-        pulse_score INTEGER NOT NULL,
-        sentiment VARCHAR(20) NOT NULL,
-        ai_summary TEXT,
-        bullish_count INTEGER DEFAULT 0,
-        bearish_count INTEGER DEFAULT 0,
-        neutral_count INTEGER DEFAULT 0,
-        total_comments INTEGER DEFAULT 0,
-        sources JSONB,
-        fetched_at TIMESTAMP NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(asset_id)
-      )
-    `);
-
-    // Comments table
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS comments (
-        id SERIAL PRIMARY KEY,
-        asset_id VARCHAR(50) NOT NULL,
-        external_id VARCHAR(100) NOT NULL,
-        user_name VARCHAR(100) NOT NULL,
-        text TEXT NOT NULL,
-        sentiment VARCHAR(20) NOT NULL,
-        source VARCHAR(50) NOT NULL,
-        likes INTEGER DEFAULT 0,
-        timestamp TIMESTAMP NOT NULL,
-        url TEXT,
-        verified BOOLEAN DEFAULT false,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(asset_id, external_id)
-      )
-    `);
-
-    // Create indexes
-    await client.query(`
-      CREATE INDEX IF NOT EXISTS idx_comments_asset_id ON comments(asset_id);
-      CREATE INDEX IF NOT EXISTS idx_comments_source ON comments(source);
-      CREATE INDEX IF NOT EXISTS idx_comments_timestamp ON comments(timestamp DESC);
-    `);
-
-    console.log('Database initialized');
-  } finally {
-    client.release();
+    // Simple connection test
+    const { error } = await supabase.from('market_insights').select('count', { count: 'exact', head: true }).limit(1);
+    if (error) throw error;
+    console.log('[DB] Supabase REST API connected and verified.');
+  } catch (err) {
+    console.error('[DB] Supabase verification failed, using in-memory storage:', err.message);
+    useMemoryStore = true;
   }
+  return Promise.resolve();
 }
 
 export const dbService = {
   // Save market insight
   async saveInsight(insight) {
-    // Memory fallback
-    if (useMemoryDb || !pool) {
-      memoryStore.insights.set(insight.assetId, {
+    const storageKey = getInsightStorageKey(insight.assetId, insight.timeframe);
+    if (useMemoryStore) {
+      memoryDb.insights.set(storageKey, {
         ...insight,
-        savedAt: Date.now()
+        fetched_at: new Date(insight.fetchedAt).toISOString(),
+        fromMemory: true
       });
-      for (const comment of insight.comments) {
-        memoryStore.comments.push({
-          asset_id: insight.assetId,
-          ...comment
-        });
+      if (insight.comments) {
+        memoryDb.comments.set(storageKey, insight.comments);
       }
       return true;
     }
-    
-    const client = await pool.connect();
-    try {
-      await client.query(`
-        INSERT INTO market_insights 
-        (asset_id, asset_name, pulse_score, sentiment, ai_summary, 
-         bullish_count, bearish_count, neutral_count, total_comments, sources, fetched_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, to_timestamp($11 / 1000))
-        ON CONFLICT (asset_id) 
-        DO UPDATE SET
-          asset_name = EXCLUDED.asset_name,
-          pulse_score = EXCLUDED.pulse_score,
-          sentiment = EXCLUDED.sentiment,
-          ai_summary = EXCLUDED.ai_summary,
-          bullish_count = EXCLUDED.bullish_count,
-          bearish_count = EXCLUDED.bearish_count,
-          neutral_count = EXCLUDED.neutral_count,
-          total_comments = EXCLUDED.total_comments,
-          sources = EXCLUDED.sources,
-          fetched_at = EXCLUDED.fetched_at
-      `, [
-        insight.assetId,
-        insight.assetName,
-        insight.pulseScore,
-        insight.sentiment,
-        insight.aiSummary,
-        insight.categoryStats.bullish.count,
-        insight.categoryStats.bearish.count,
-        insight.categoryStats.neutral.count,
-        insight.comments.length,
-        JSON.stringify(insight.sources),
-        insight.fetchedAt
-      ]);
 
-      // Save comments
-      for (const comment of insight.comments) {
-        await client.query(`
-          INSERT INTO comments 
-          (asset_id, external_id, user_name, text, sentiment, source, likes, timestamp, url, verified)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, to_timestamp($8 / 1000), $9, $10)
-          ON CONFLICT (asset_id, external_id) DO NOTHING
-        `, [
-          insight.assetId,
-          comment.id,
-          comment.user,
-          comment.text,
-          comment.sentiment,
-          comment.source,
-          comment.likes || 0,
-          comment.timestamp,
-          comment.url || null,
-          comment.verified || false
-        ]);
+    try {
+      // 1. Upsert Insight
+      const { error: insError } = await supabase
+        .from('market_insights')
+        .upsert({
+          asset_id: storageKey,
+          asset_name: insight.assetName,
+          pulse_score: insight.pulseScore,
+          sentiment: insight.sentiment,
+          ai_summary: insight.aiSummary,
+          category_summaries: insight.categorySummaries,
+          bullish_count: insight.categoryStats.bullish.count,
+          bearish_count: insight.categoryStats.bearish.count,
+          neutral_count: insight.categoryStats.neutral.count,
+          sources: insight.sources,
+          fetched_at: new Date(insight.fetchedAt).toISOString()
+        }, { onConflict: 'asset_id' });
+
+      if (insError) throw insError;
+
+      // 2. Insert Comments (Batch)
+      if (insight.comments && insight.comments.length > 0) {
+        const commentsToInsert = insight.comments.map(c => ({
+          asset_id: storageKey,
+          external_id: typeof c.id === 'string' ? c.id : String(c.id),
+          user_name: c.user,
+          text: c.text,
+          sentiment: c.sentiment,
+          source: c.source,
+          likes: c.likes || 0,
+          timestamp: new Date(c.timestamp).toISOString()
+        }));
+
+        const { error: commError } = await supabase
+          .from('comments')
+          .upsert(commentsToInsert, { onConflict: 'asset_id,external_id' });
+
+        if (commError) console.warn('[DB] Comment batch upsert warning:', commError.message);
       }
 
       return true;
     } catch (error) {
-      console.error('DB save error:', error.message);
+      console.error('[DB Save Error]:', error.message);
       return false;
-    } finally {
-      client.release();
     }
   },
 
-  // Get insight from database
-  async getInsight(assetId, maxAgeHours = 2) {
-    // Memory fallback
-    if (useMemoryDb || !pool) {
-      const insight = memoryStore.insights.get(assetId);
-      if (!insight) return null;
-      
-      const maxAgeMs = maxAgeHours * 3600000;
-      if (Date.now() - insight.fetchedAt > maxAgeMs) return null;
-      
-      const comments = memoryStore.comments
-        .filter(c => c.asset_id === assetId)
-        .sort((a, b) => b.timestamp - a.timestamp)
-        .slice(0, 50);
-      
+  // Get insight
+  async getInsight(assetId, timeframe = '1D', maxAgeHours = 2) {
+    const storageKey = getInsightStorageKey(assetId, timeframe);
+    if (useMemoryStore) {
+      const data = memoryDb.insights.get(storageKey);
+      if (!data) return null;
+
+      const age = (Date.now() - new Date(data.fetched_at).getTime()) / 3600000;
+      if (age > maxAgeHours) return null;
+
       return {
-        ...insight,
-        comments,
-        fromDatabase: false
+        ...data,
+        comments: memoryDb.comments.get(storageKey) || [],
+        fromDatabase: true,
+        isMemoryFallback: true
       };
     }
-    
-    const client = await pool.connect();
+
     try {
-      // Check if data is fresh enough
-      const result = await client.query(`
-        SELECT * FROM market_insights 
-        WHERE asset_id = $1 
-        AND fetched_at > NOW() - INTERVAL '${maxAgeHours} hours'
-      `, [assetId]);
+      const { data, error } = await supabase
+        .from('market_insights')
+        .select('*')
+        .eq('asset_id', storageKey)
+        .gt('fetched_at', new Date(Date.now() - maxAgeHours * 3600000).toISOString())
+        .maybeSingle();
 
-      if (result.rows.length === 0) {
-        return null;
-      }
+      if (error || !data) return null;
 
-      const row = result.rows[0];
-
-      // Get recent comments
-      const commentsResult = await client.query(`
-        SELECT * FROM comments 
-        WHERE asset_id = $1 
-        ORDER BY timestamp DESC 
-        LIMIT 50
-      `, [assetId]);
+      const { data: comments } = await supabase
+        .from('comments')
+        .select('*')
+        .eq('asset_id', storageKey)
+        .order('timestamp', { ascending: false })
+        .limit(50);
 
       return {
-        assetId: row.asset_id,
-        assetName: row.asset_name,
-        pulseScore: row.pulse_score,
-        sentiment: row.sentiment,
-        aiSummary: row.ai_summary,
+        assetId,
+        assetName: data.asset_name,
+        timeframe,
+        pulseScore: data.pulse_score,
+        sentiment: data.sentiment,
+        aiSummary: data.ai_summary,
+        categorySummaries: data.category_summaries,
         categoryStats: {
-          bullish: { count: row.bullish_count },
-          bearish: { count: row.bearish_count },
-          neutral: { count: row.neutral_count }
+          bullish: { count: data.bullish_count },
+          bearish: { count: data.bearish_count },
+          neutral: { count: data.neutral_count }
         },
-        comments: commentsResult.rows.map(c => ({
+        comments: (comments || []).map(c => ({
           id: c.external_id,
           user: c.user_name,
           text: c.text,
           sentiment: c.sentiment,
           source: c.source,
           likes: c.likes,
-          timestamp: new Date(c.timestamp).getTime(),
-          url: c.url,
-          verified: c.verified
+          timestamp: new Date(c.timestamp).getTime()
         })),
-        sources: row.sources,
-        fetchedAt: new Date(row.fetched_at).getTime(),
+        sources: data.sources,
+        fetchedAt: new Date(data.fetched_at).getTime(),
         fromDatabase: true
       };
     } catch (error) {
-      console.error('DB get error:', error.message);
+      console.error('[DB Get Error]:', error.message);
       return null;
-    } finally {
-      client.release();
-    }
-  },
-
-  // Get all assets with stale data (for background jobs)
-  async getStaleAssets(maxAgeHours = 2) {
-    const client = await pool.connect();
-    try {
-      const result = await client.query(`
-        SELECT DISTINCT asset_id, asset_name 
-        FROM market_insights 
-        WHERE fetched_at < NOW() - INTERVAL '${maxAgeHours} hours'
-        OR fetched_at IS NULL
-      `);
-      return result.rows;
-    } finally {
-      client.release();
-    }
-  },
-
-  // Get popular assets
-  async getPopularAssets(limit = 20) {
-    const client = await pool.connect();
-    try {
-      const result = await client.query(`
-        SELECT asset_id, asset_name, pulse_score, sentiment, total_comments
-        FROM market_insights
-        ORDER BY total_comments DESC
-        LIMIT $1
-      `, [limit]);
-      return result.rows;
-    } finally {
-      client.release();
     }
   }
 };
