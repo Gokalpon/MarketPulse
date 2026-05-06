@@ -40,8 +40,8 @@ class NetworkService {
 
   async fetch(url, options = {}) {
     const {
-      retryCount = 3,
-      delay = 1500,
+      retryCount = 2,
+      delay = 500,
       method = 'GET',
       headers = {},
       ...axiosOptions

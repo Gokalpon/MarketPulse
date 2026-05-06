@@ -223,8 +223,8 @@ export async function fetchMarketInsights(
   force = false,
   timeframe = "1D"
 ): Promise<MarketInsight | null> {
-  const MAX_RETRIES = 20; // Max 1 minute (3s * 20)
-  const POLL_INTERVAL = 3000; // 3 seconds
+  const MAX_RETRIES = 8; // Max 16s (2s * 8)
+  const POLL_INTERVAL = 2000; // 2 seconds
 
   try {
     const shouldForce = retryCount === 0 && force;
