@@ -1,5 +1,6 @@
 import pLimit from 'p-limit';
 import { fetchRedditComments } from './scrapers/redditScraper.js';
+import { fetchTradingViewComments } from './scrapers/tradingviewScraper.js';
 import { fetchStockTwitsComments } from './scrapers/stocktwitsScraper.js';
 import { fetchChartPoints, normalizeTimeframe } from './services/chartDataService.js';
 import {
@@ -113,16 +114,18 @@ class MarketDataService {
 
     const fetchResults = await Promise.allSettled([
       this.limit(() => fetchRedditComments(assetId, assetName)),
+      this.limit(() => fetchTradingViewComments(assetId)),
       this.limit(() => fetchStockTwitsComments(assetId)),
       this.limit(() => this.fetchMarketNews(assetId))
     ]);
 
     let redditComments = fetchResults[0].status === 'fulfilled' ? fetchResults[0].value : [];
-    let stocktwitsComments = fetchResults[1].status === 'fulfilled' ? fetchResults[1].value : [];
-    let newsItems = fetchResults[2].status === 'fulfilled' ? fetchResults[2].value : [];
+    let tvComments = fetchResults[1].status === 'fulfilled' ? fetchResults[1].value : [];
+    let stocktwitsComments = fetchResults[2].status === 'fulfilled' ? fetchResults[2].value : [];
+    let newsItems = fetchResults[3].status === 'fulfilled' ? fetchResults[3].value : [];
 
-    let allRaw = [...redditComments, ...stocktwitsComments];
-    console.log(`[Insight] Total: Reddit=${redditComments.length}, StockTwits=${stocktwitsComments.length}`);
+    let allRaw = [...redditComments, ...tvComments, ...stocktwitsComments];
+    console.log(`[Insight] Total: Reddit=${redditComments.length}, TradingView=${tvComments.length}, StockTwits=${stocktwitsComments.length}`);
 
     if (allRaw.length === 0) {
       console.log('No real community data found; returning empty comment set.');
@@ -174,6 +177,7 @@ class MarketDataService {
       news: newsItems,
       sources: {
         reddit: redditComments.length,
+        tradingview: tvComments.length,
         stocktwits: stocktwitsComments.length,
         news: newsItems.length,
       },

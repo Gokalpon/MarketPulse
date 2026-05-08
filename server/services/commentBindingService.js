@@ -1,5 +1,6 @@
 const SOURCE_TRUST = {
   Reddit: 0.9,
+  TradingView: 0.85,
   StockTwits: 0.75,
   News: 0.95,
   Web: 0.6,

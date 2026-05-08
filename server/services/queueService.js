@@ -3,6 +3,7 @@ import { cacheService } from './cacheService.js';
 import { dbService } from './dbService.js';
 import { aiService } from './aiService.js';
 import { fetchRedditComments } from '../scrapers/redditScraper.js';
+import { fetchTradingViewComments } from '../scrapers/tradingviewScraper.js';
 import { fetchStockTwitsComments } from '../scrapers/stocktwitsScraper.js';
 import { fetchChartPoints, normalizeTimeframe } from './chartDataService.js';
 import {
@@ -66,15 +67,17 @@ async function processScrapeJob(data) {
 
     const results = await Promise.allSettled([
       withTimeout(fetchRedditComments(assetId, assetName), SCRAPE_TIMEOUT, 'Reddit'),
+      withTimeout(fetchTradingViewComments(assetId), SCRAPE_TIMEOUT, 'TradingView'),
       withTimeout(fetchStockTwitsComments(assetId), SCRAPE_TIMEOUT, 'StockTwits'),
     ]);
 
     const redditComments = results[0].status === 'fulfilled' ? results[0].value : [];
-    const stocktwitsComments = results[1].status === 'fulfilled' ? results[1].value : [];
+    const tvComments = results[1].status === 'fulfilled' ? results[1].value : [];
+    const stocktwitsComments = results[2].status === 'fulfilled' ? results[2].value : [];
 
-    console.log(`[Worker] Data gathered. Reddit: ${redditComments.length}, StockTwits: ${stocktwitsComments.length}`);
+    console.log(`[Worker] Data gathered. Reddit: ${redditComments.length}, TradingView: ${tvComments.length}, StockTwits: ${stocktwitsComments.length}`);
 
-    let allRaw = [...redditComments, ...stocktwitsComments];
+    let allRaw = [...redditComments, ...tvComments, ...stocktwitsComments];
     if (allRaw.length === 0) {
       console.log(`[Worker] No real community data found for ${assetId}; injecting synthetic sentiment markers.`);
     }
@@ -179,6 +182,7 @@ async function processScrapeJob(data) {
       bindingStats,
       sources: {
         reddit: redditComments.length,
+        tradingview: tvComments.length,
         stocktwits: stocktwitsComments.length,
       },
       fetchedAt: Date.now()
