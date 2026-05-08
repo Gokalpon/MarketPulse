@@ -300,27 +300,34 @@ export default function MarketPulseApp({ containerHeight }: { containerHeight?: 
 
     let isCancelled = false;
 
+    const buildPlaceholderClusters = (sentiment: "Positive" | "Negative" | "Neutral" = "Neutral", summary?: string): SentimentCluster[] => {
+      // 3 anlık placeholder: chart başı, ortası, sonu — gerçek veri gelene kadar grafik boş kalmasın.
+      const len = activeData.length;
+      if (len === 0) return [];
+      const indices = [Math.floor(len * 0.15), Math.floor(len * 0.5), Math.floor(len * 0.85)];
+      const labels = ["Pulse opening", "Mid-session pulse", "Latest pulse"];
+      return indices.map((idx, i) => ({
+        avgIdx: idx,
+        avgPrice: activeData[idx] || livePriceRef.current || activeAsset.price || 0,
+        count: 1,
+        sentiment,
+        bindingKind: "session_context" as const,
+        origin: "external" as const,
+        sources: [],
+        translation: summary ? summary.slice(0, 60) : `${activeAsset.name} ${labels[i]}`,
+        comments: [],
+      }));
+    };
+
+    // Fetch'i beklemeden hemen placeholder göster — kullanıcı pull butonuna basmak zorunda kalmasın.
+    setExternalSentimentClusters(buildPlaceholderClusters());
+
     const loadExternalCommentClusters = async () => {
       const insight = await fetchMarketInsights(selectedAssetId, activeAsset.name, livePriceRef.current || activeAsset.price || 0, 0, false, timeframe);
       if (isCancelled) return;
 
       if (!insight || (insight.commentClusters ?? []).length === 0) {
-        // No clusters yet — synthesize a single placeholder at chart midpoint so the graph
-        // always has at least one visible marker while real data loads in the background.
-        const midIdx = Math.floor(activeData.length / 2);
-        const midPrice = activeData[midIdx] || livePriceRef.current || activeAsset.price || 0;
-        const synth: SentimentCluster = {
-          avgIdx: midIdx,
-          avgPrice: midPrice,
-          count: 1,
-          sentiment: insight?.sentiment ?? "Neutral",
-          bindingKind: "session_context" as const,
-          origin: "external" as const,
-          sources: [],
-          translation: insight?.aiSummary ? insight.aiSummary.slice(0, 60) : `${activeAsset.name} market pulse loading...`,
-          comments: [],
-        };
-        if (!isCancelled) setExternalSentimentClusters([synth]);
+        if (!isCancelled) setExternalSentimentClusters(buildPlaceholderClusters(insight?.sentiment ?? "Neutral", insight?.aiSummary));
         return;
       }
 
