@@ -188,7 +188,8 @@ async function processScrapeJob(data) {
       fetchedAt: Date.now()
     };
 
-    await cacheService.set(`insight:${assetId}:${safeTimeframe}`, finalResult, 7200);
+    const cacheTTL = { '1H': 60, '4H': 300, '1D': 600, '3D': 900, '1W': 1800, '1M': 3600, '1Y': 7200 }[safeTimeframe] ?? 1800;
+    await cacheService.set(`insight:${assetId}:${safeTimeframe}`, finalResult, cacheTTL);
     await dbService.saveInsight(finalResult);
 
     console.log(`[Worker] ✅ Completed ${assetId}`);

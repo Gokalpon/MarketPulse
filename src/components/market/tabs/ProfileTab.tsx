@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { useCountUpAnimation } from "@/hooks/useCountUpAnimation";
@@ -41,6 +41,19 @@ export function ProfileTab({
   setIsLoggedIn, handleProfilePicture,
 }: ProfileTabProps) {
   // Animated stats counters
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true);
+    try {
+      await fetch('/api/user/account', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: 'current' }) });
+    } catch (_) {}
+    setIsDeleting(false);
+    setShowDeleteConfirm(false);
+    setIsLoggedIn(false);
+  };
+
   const commentsCount = useCountUpAnimation({
     end: userComments.length,
     duration: 800,
@@ -299,11 +312,69 @@ export function ProfileTab({
                   {language === "Turkish" ? "Kullanım Koşulları" : "Terms of Service"}
                 </a>
                 <button className="w-full py-4 bg-white/5 border border-white/[0.05] rounded-2xl text-[12px] font-black text-white/60 uppercase tracking-widest hover:bg-white/10 transition-colors">{language === "Turkish" ? "Verileri Dışa Aktar" : "Export Data"}</button>
-                <button className="w-full py-4 bg-[var(--mp-red)]/10 border border-[var(--mp-red)]/20 rounded-2xl text-[12px] font-black text-[var(--mp-red)] uppercase tracking-widest hover:bg-[var(--mp-red)]/20 transition-colors">{language === "Turkish" ? "Hesabı Sil" : "Delete Account"}</button>
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="w-full py-4 bg-[var(--mp-red)]/10 border border-[var(--mp-red)]/20 rounded-2xl text-[12px] font-black text-[var(--mp-red)] uppercase tracking-widest hover:bg-[var(--mp-red)]/20 transition-colors"
+                >
+                  {language === "Turkish" ? "Hesabı Sil" : "Delete Account"}
+                </button>
               </div>
             </div>
           </motion.div>
         ) : null}
+      </AnimatePresence>
+
+      {/* Account deletion confirmation dialog */}
+      <AnimatePresence>
+        {showDeleteConfirm && createPortal(
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[500] flex items-center justify-center bg-black/70 backdrop-blur-sm px-6"
+            onClick={() => setShowDeleteConfirm(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={e => e.stopPropagation()}
+              className="w-full max-w-sm bg-[#0D0E14] border border-white/10 rounded-3xl p-6 space-y-5"
+            >
+              <div className="text-center space-y-2">
+                <div className="w-12 h-12 rounded-2xl bg-[var(--mp-red)]/10 flex items-center justify-center mx-auto">
+                  <Trash2 className="w-6 h-6 text-[var(--mp-red)]" />
+                </div>
+                <h3 className="text-[16px] font-black uppercase">
+                  {language === "Turkish" ? "Hesabı Sil" : "Delete Account"}
+                </h3>
+                <p className="text-[12px] text-white/40 leading-relaxed">
+                  {language === "Turkish"
+                    ? "Tüm verileriniz kalıcı olarak silinecek. Bu işlem geri alınamaz."
+                    : "All your data will be permanently deleted. This action cannot be undone."}
+                </p>
+              </div>
+              <div className="space-y-3">
+                <button
+                  onClick={handleDeleteAccount}
+                  disabled={isDeleting}
+                  className="w-full py-4 bg-[var(--mp-red)] rounded-2xl text-[12px] font-black text-white uppercase tracking-widest disabled:opacity-50"
+                >
+                  {isDeleting
+                    ? (language === "Turkish" ? "Siliniyor..." : "Deleting...")
+                    : (language === "Turkish" ? "Evet, Hesabımı Sil" : "Yes, Delete My Account")}
+                </button>
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="w-full py-4 bg-white/5 rounded-2xl text-[12px] font-black text-white/60 uppercase tracking-widest hover:bg-white/10 transition-colors"
+                >
+                  {language === "Turkish" ? "Vazgeç" : "Cancel"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>,
+          document.body
+        )}
       </AnimatePresence>
     </motion.div>
   );

@@ -13,7 +13,18 @@ const PORT = 3001;
 // Initialize database on startup
 initDatabase().catch(console.error);
 
-app.use(cors());
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
+  : ['capacitor://localhost', 'https://localhost', 'http://localhost:5173', 'http://localhost:3000'];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+    callback(new Error(`CORS blocked: ${origin}`));
+  },
+  methods: ['GET', 'POST', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 app.use(express.json());
 
 // GET /api/market/chart?symbol=BTC-USD&interval=15m&range=1d
@@ -232,6 +243,20 @@ app.get("/api/health", async (req, res) => {
     },
     timestamp: new Date().toISOString()
   });
+});
+
+// DELETE /api/user/account - Account deletion (Apple App Store required)
+app.delete("/api/user/account", async (req, res) => {
+  const { userId } = req.body;
+  if (!userId) return res.status(400).json({ error: "userId required" });
+
+  try {
+    await dbService.deleteUser(userId);
+    res.json({ success: true, message: "Account and all associated data deleted." });
+  } catch (err) {
+    console.error(`[API] Account deletion error:`, err.message);
+    res.status(500).json({ error: "Failed to delete account." });
+  }
 });
 
 app.listen(PORT, () => {

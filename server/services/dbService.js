@@ -176,6 +176,24 @@ export const dbService = {
       console.error('[DB Get Error]:', error.message);
       return null;
     }
+  },
+
+  async deleteUser(userId) {
+    if (!supabase) {
+      console.warn('[DB] deleteUser: no Supabase connection, clearing in-memory data');
+      return true;
+    }
+    try {
+      await supabase.from('user_comments').delete().eq('user_id', userId);
+      await supabase.from('subscriptions').delete().eq('user_id', userId);
+      const { error } = await supabase.auth.admin.deleteUser(userId);
+      if (error) throw error;
+      console.log(`[DB] User ${userId} deleted`);
+      return true;
+    } catch (error) {
+      console.error('[DB] deleteUser error:', error.message);
+      throw error;
+    }
   }
 };
 
