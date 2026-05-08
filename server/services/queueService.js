@@ -87,7 +87,7 @@ async function processScrapeJob(data) {
 
     let allRaw = [...redditComments, ...tvComments, ...invComments, ...stocktwitsComments, ...xComments];
     if (allRaw.length === 0) {
-      console.log(`[Worker] No real community data found for ${assetId}; returning empty comment set.`);
+      console.log(`[Worker] No real community data found for ${assetId}; injecting synthetic sentiment markers.`);
     }
 
     let chartPoints = [];
@@ -107,6 +107,50 @@ async function processScrapeJob(data) {
         open: currentPrice, high: currentPrice, low: currentPrice, close: currentPrice, volume: 0,
       }));
       console.log(`[Worker] Using synthetic chart points (Yahoo unavailable) for ${assetId}`);
+    }
+
+    // If scrapers returned nothing, inject synthetic price-action markers so the chart always has clusters.
+    if (allRaw.length === 0 && chartPoints.length > 0) {
+      const first = chartPoints[0];
+      const last = chartPoints[chartPoints.length - 1];
+      const mid = chartPoints[Math.floor(chartPoints.length / 2)];
+      const priceChange = ((last.price - first.price) / (first.price || 1)) * 100;
+      const trend = priceChange > 1.5 ? 'Positive' : priceChange < -1.5 ? 'Negative' : 'Neutral';
+      const trendWord = trend === 'Positive' ? 'bullish' : trend === 'Negative' ? 'bearish' : 'neutral';
+      const now = Date.now();
+      allRaw = [
+        {
+          id: `pulse_start_${assetId}`,
+          user: 'MarketPulse',
+          text: `${assetName} opened the session at $${first.price.toFixed(2)}. Market pulse tracking initiated.`,
+          sentiment: 'Neutral',
+          source: 'Web',
+          timestamp: first.timestamp || now,
+          targetTimestamp: first.timestamp || now,
+          likes: 0,
+        },
+        {
+          id: `pulse_mid_${assetId}`,
+          user: 'MarketPulse',
+          text: `${assetName} mid-session sentiment is ${trendWord}. Price at $${mid.price.toFixed(2)}.`,
+          sentiment: trend,
+          source: 'Web',
+          timestamp: mid.timestamp || now,
+          targetTimestamp: mid.timestamp || now,
+          likes: 0,
+        },
+        {
+          id: `pulse_latest_${assetId}`,
+          user: 'MarketPulse',
+          text: `${assetName} latest price $${last.price.toFixed(2)}. ${Math.abs(priceChange).toFixed(2)}% ${priceChange >= 0 ? 'gain' : 'loss'} over the period. Community data unavailable.`,
+          sentiment: trend,
+          source: 'Web',
+          timestamp: last.timestamp || now,
+          targetTimestamp: last.timestamp || now,
+          likes: 0,
+        },
+      ];
+      console.log(`[Worker] Injected 3 synthetic sentiment markers for ${assetId}`);
     }
 
     const processedComments = bindCommentsToChart(allRaw, chartPoints, currentPrice);

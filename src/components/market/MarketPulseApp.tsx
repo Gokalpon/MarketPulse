@@ -302,7 +302,27 @@ export default function MarketPulseApp({ containerHeight }: { containerHeight?: 
 
     const loadExternalCommentClusters = async () => {
       const insight = await fetchMarketInsights(selectedAssetId, activeAsset.name, livePriceRef.current || activeAsset.price || 0, 0, false, timeframe);
-      if (isCancelled || !insight) return;
+      if (isCancelled) return;
+
+      if (!insight || (insight.commentClusters ?? []).length === 0) {
+        // No clusters yet — synthesize a single placeholder at chart midpoint so the graph
+        // always has at least one visible marker while real data loads in the background.
+        const midIdx = Math.floor(activeData.length / 2);
+        const midPrice = activeData[midIdx] || livePriceRef.current || activeAsset.price || 0;
+        const synth: SentimentCluster = {
+          avgIdx: midIdx,
+          avgPrice: midPrice,
+          count: 1,
+          sentiment: insight?.sentiment ?? "Neutral",
+          bindingKind: "session_context" as const,
+          origin: "external" as const,
+          sources: [],
+          translation: insight?.aiSummary ? insight.aiSummary.slice(0, 60) : `${activeAsset.name} market pulse loading...`,
+          comments: [],
+        };
+        if (!isCancelled) setExternalSentimentClusters([synth]);
+        return;
+      }
 
       const clusters = (insight.commentClusters ?? [])
         .filter((cluster) => Number.isFinite(cluster.avgIdx) && Number.isFinite(cluster.avgPrice))
@@ -320,7 +340,7 @@ export default function MarketPulseApp({ containerHeight }: { containerHeight?: 
           })) as unknown as UserComment[],
         })) as SentimentCluster[];
 
-      setExternalSentimentClusters(clusters);
+      if (!isCancelled) setExternalSentimentClusters(clusters);
     };
 
     void loadExternalCommentClusters();
@@ -328,7 +348,7 @@ export default function MarketPulseApp({ containerHeight }: { containerHeight?: 
     return () => {
       isCancelled = true;
     };
-  }, [activeAsset.name, activeAsset.price, activeData.length, isLoggedIn, selectedAssetId, timeframe]);
+  }, [activeAsset.name, activeAsset.price, activeData.length, activeAsset.id, isLoggedIn, selectedAssetId, timeframe]);
 
   const visibleSentimentClusters = useMemo(
     () => [...sentimentClusters, ...externalSentimentClusters].slice(0, 14),

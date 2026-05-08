@@ -186,7 +186,12 @@ export function DashboardTab({
     };
 
     return (sentimentClusters as DashboardSentimentCluster[])
-      .filter((cluster) => (cluster.origin !== "external" || showAIConsensus) && isVisibleIndex(cluster.avgIdx))
+      .filter((cluster) => {
+        if (cluster.origin !== "external") return isVisibleIndex(cluster.avgIdx);
+        // External clusters: show if AI consensus enabled and has a valid index.
+        // Do NOT filter by isVisibleIndex — clamp to chart edge instead so they always appear.
+        return showAIConsensus && Number.isFinite(cluster.avgIdx);
+      })
       .sort((a, b) => rankCluster(a) - rankCluster(b) || (b.count ?? 0) - (a.count ?? 0))
       .slice(0, 5);
   }, [isVisibleIndex, sentimentClusters, showAIConsensus]);

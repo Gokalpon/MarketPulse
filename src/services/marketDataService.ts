@@ -223,7 +223,7 @@ export async function fetchMarketInsights(
   force = false,
   timeframe = "1D"
 ): Promise<MarketInsight | null> {
-  const MAX_RETRIES = 8; // Max 16s (2s * 8)
+  const MAX_RETRIES = 18; // Max 36s (2s * 18) — scraping can take up to 25s
   const POLL_INTERVAL = 2000; // 2 seconds
 
   try {
