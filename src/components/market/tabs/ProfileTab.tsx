@@ -282,6 +282,22 @@ export function ProfileTab({
                 { label: language === "Turkish" ? "Analitik" : "Analytics", desc: language === "Turkish" ? "Kullanım verisi paylaşımı" : "Share usage data for improvements", defaultOn: true },
               ].map((item, i) => <NotifToggle key={i} label={item.label} desc={item.desc} defaultOn={item.defaultOn} />)}
               <div className="mt-6 space-y-3">
+                <a
+                  href="https://marketpulse.app/privacy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-4 bg-white/5 border border-white/[0.05] rounded-2xl text-[12px] font-black text-white/60 uppercase tracking-widest hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
+                >
+                  {language === "Turkish" ? "Gizlilik Politikası" : "Privacy Policy"}
+                </a>
+                <a
+                  href="https://marketpulse.app/terms"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-4 bg-white/5 border border-white/[0.05] rounded-2xl text-[12px] font-black text-white/60 uppercase tracking-widest hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
+                >
+                  {language === "Turkish" ? "Kullanım Koşulları" : "Terms of Service"}
+                </a>
                 <button className="w-full py-4 bg-white/5 border border-white/[0.05] rounded-2xl text-[12px] font-black text-white/60 uppercase tracking-widest hover:bg-white/10 transition-colors">{language === "Turkish" ? "Verileri Dışa Aktar" : "Export Data"}</button>
                 <button className="w-full py-4 bg-[var(--mp-red)]/10 border border-[var(--mp-red)]/20 rounded-2xl text-[12px] font-black text-[var(--mp-red)] uppercase tracking-widest hover:bg-[var(--mp-red)]/20 transition-colors">{language === "Turkish" ? "Hesabı Sil" : "Delete Account"}</button>
               </div>

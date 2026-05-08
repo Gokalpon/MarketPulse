@@ -156,6 +156,19 @@ export const OnboardingScreen = ({ onLogin, language, setLanguage, t }: Onboardi
                     </div>
                     <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={onLogin} className="w-full py-3.5 rounded-full text-[12px] font-black uppercase tracking-widest shadow-lg" style={{ background: "rgba(255,255,255,0.92)", color: "#1a1a1a" }}>{t.emailLogin}</motion.button>
                     <button onClick={onLogin} className="w-full text-[11px] font-black text-white/50 uppercase tracking-[0.35em] hover:text-white/90 transition-colors mt-3 py-2">{t.skip}</button>
+                    <p className="text-center text-[9.5px] text-white/25 leading-relaxed mt-4 px-2">
+                      {language === "Turkish"
+                        ? "Bu uygulama yatırım tavsiyesi sunmaz. Tüm veriler bilgilendirme amaçlıdır. Devam ederek "
+                        : "This app does not provide investment advice. All data is for informational purposes only. By continuing you agree to our "}
+                      <a href="https://marketpulse.app/terms" target="_blank" rel="noopener noreferrer" className="text-white/40 underline underline-offset-2">
+                        {language === "Turkish" ? "Kullanım Koşulları" : "Terms of Service"}
+                      </a>
+                      {language === "Turkish" ? " ve " : " and "}
+                      <a href="https://marketpulse.app/privacy" target="_blank" rel="noopener noreferrer" className="text-white/40 underline underline-offset-2">
+                        {language === "Turkish" ? "Gizlilik Politikası" : "Privacy Policy"}
+                      </a>
+                      {language === "Turkish" ? "'nı kabul etmiş olursunuz." : "."}
+                    </p>
                   </div>
                 </div>
                 <motion.button whileHover={{ opacity: 1, letterSpacing: "0.5em" }} onClick={() => setOnboardingStep(0)} className="w-full text-white/20 text-[11px] font-black uppercase tracking-[0.4em] transition-all py-4">{t.back}</motion.button>
