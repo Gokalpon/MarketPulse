@@ -1,10 +1,6 @@
-import axios from 'axios';
 import pLimit from 'p-limit';
-import * as cheerio from 'cheerio';
 import { fetchRedditComments } from './scrapers/redditScraper.js';
-import { fetchTradingViewComments } from './scrapers/tradingviewScraper.js';
-import { fetchInvestingComments } from './scrapers/investingScraper.js';
-import { fetchStockTwitsComments, fetchXTwitterComments, closeBrowser } from './scrapers/puppeteerScraper.js';
+import { fetchStockTwitsComments } from './scrapers/stocktwitsScraper.js';
 import { fetchChartPoints, normalizeTimeframe } from './services/chartDataService.js';
 import {
   bindCommentsToChart,
@@ -115,49 +111,18 @@ class MarketDataService {
     // Fetch from all sources in parallel with rate limiting
     console.log(`Fetching fresh data for ${assetId}...`);
 
-    // --- PHASE 1: Lightweight Scrapers (Axios/Cheerio) ---
-    // Fast, low RAM, low CPU
-    const fastResults = await Promise.allSettled([
+    const fetchResults = await Promise.allSettled([
       this.limit(() => fetchRedditComments(assetId, assetName)),
-      this.limit(() => fetchTradingViewComments(assetId)),
-      this.limit(() => fetchInvestingComments(assetId)),
+      this.limit(() => fetchStockTwitsComments(assetId)),
       this.limit(() => this.fetchMarketNews(assetId))
     ]);
 
-    let redditComments = fastResults[0].status === 'fulfilled' ? fastResults[0].value : [];
-    let tvComments = fastResults[1].status === 'fulfilled' ? fastResults[1].value : [];
-    let invComments = fastResults[2].status === 'fulfilled' ? fastResults[2].value : [];
-    let newsItems = fastResults[3].status === 'fulfilled' ? fastResults[3].value : [];
+    let redditComments = fetchResults[0].status === 'fulfilled' ? fetchResults[0].value : [];
+    let stocktwitsComments = fetchResults[1].status === 'fulfilled' ? fetchResults[1].value : [];
+    let newsItems = fetchResults[2].status === 'fulfilled' ? fetchResults[2].value : [];
 
-    let allRaw = [...redditComments, ...tvComments, ...invComments];
-    console.log(`[Insight] Fast results: ${allRaw.length} comments from Reddit/TV/Inv`);
-
-    // --- PHASE 2: Heavy Scrapers (Puppeteer) ---
-    // Only if we don't have enough data (threshold: 5 comments)
-    let stocktwitsComments = [];
-    let xComments = [];
-
-    if (allRaw.length < 5) {
-      console.log(`[Insight] Low data count (${allRaw.length}), launching Puppeteer fallback...`);
-      try {
-        const heavyResults = await Promise.allSettled([
-          this.limit(() => fetchStockTwitsComments(assetId)),
-          this.limit(() => fetchXTwitterComments(assetId, assetName))
-        ]);
-
-        stocktwitsComments = heavyResults[0].status === 'fulfilled' ? heavyResults[0].value : [];
-        xComments = heavyResults[1].status === 'fulfilled' ? heavyResults[1].value : [];
-
-        allRaw = [...allRaw, ...stocktwitsComments, ...xComments];
-
-        // Always close browser after heavy lifting (keep it clean)
-        await closeBrowser();
-      } catch (err) {
-        console.error('[Insight] Puppeteer failed, proceeding with what we have');
-      }
-    }
-
-    console.log(`Fetched total: Reddit=${redditComments.length}, TradingView=${tvComments.length}, Investing=${invComments.length}, StockTwits=${stocktwitsComments.length}, X=${xComments.length}`);
+    let allRaw = [...redditComments, ...stocktwitsComments];
+    console.log(`[Insight] Total: Reddit=${redditComments.length}, StockTwits=${stocktwitsComments.length}`);
 
     if (allRaw.length === 0) {
       console.log('No real community data found; returning empty comment set.');
@@ -209,11 +174,8 @@ class MarketDataService {
       news: newsItems,
       sources: {
         reddit: redditComments.length,
-        tradingview: tvComments.length,
-        investing: invComments.length,
         stocktwits: stocktwitsComments.length,
-        x: xComments.length,
-        news: newsItems.length
+        news: newsItems.length,
       },
       fetchedAt: Date.now()
     };
