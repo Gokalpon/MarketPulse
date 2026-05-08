@@ -1055,6 +1055,13 @@ export function DashboardTab({
             <p className="text-[11px] text-white/30 italic">{t.tapRefresh.replace("{asset}", activeAsset.name)}</p>
           )}
         </div>
+
+        {/* Risk disclaimer — required for App Store financial app guidelines */}
+        <p className="text-[9px] text-white/20 text-center leading-relaxed px-4 pb-2">
+          {language === "Turkish"
+            ? "Bu uygulama yatırım tavsiyesi sunmaz. Gösterilen veriler yalnızca bilgilendirme amaçlıdır. Yatırım kararlarınızı kendi araştırmanıza dayandırın."
+            : "This app does not provide investment advice. Data shown is for informational purposes only. Make investment decisions based on your own research."}
+        </p>
       </div>
     </motion.div>
   );
