@@ -237,8 +237,24 @@ export function bindCommentsToChart(rawComments = [], chartPoints = [], currentP
         }
       }
 
+      // FORCE-BIND: every comment must land on a chart point so it shows on graph.
+      // Falls back to nearest-by-time then to the latest visible candle.
+      if (!point && chartPoints.length > 0) {
+        point = binarySearchNearestByTime(chartPoints, postedAt)
+          || chartPoints[chartPoints.length - 1];
+        if (point) {
+          bindingKind = "session_context";
+          bindingConfidence = 0.25;
+          displayMode = "session_marker";
+          includeInPulse = true;
+          pulseWeightMultiplier = 0.15;
+        }
+      }
+
       if (!point && currentPrice) {
-        point = { index: null, price: currentPrice, timestamp: postedAt };
+        point = { index: 0, price: currentPrice, timestamp: postedAt };
+        bindingKind = "session_context";
+        displayMode = "session_marker";
       }
 
       if (!text || !postedAt) return null;

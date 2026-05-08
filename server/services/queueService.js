@@ -97,6 +97,18 @@ async function processScrapeJob(data) {
       console.warn(`[Worker] Chart binding skipped for ${assetId}: ${err.message}`);
     }
 
+    // Synthetic fallback: if Yahoo failed, build a flat 20-point series so comments still bind.
+    if ((!chartPoints || chartPoints.length === 0) && currentPrice > 0) {
+      const now = Date.now();
+      chartPoints = Array.from({ length: 20 }, (_, i) => ({
+        index: i,
+        timestamp: now - (19 - i) * 60 * 60 * 1000,
+        price: currentPrice,
+        open: currentPrice, high: currentPrice, low: currentPrice, close: currentPrice, volume: 0,
+      }));
+      console.log(`[Worker] Using synthetic chart points (Yahoo unavailable) for ${assetId}`);
+    }
+
     const processedComments = bindCommentsToChart(allRaw, chartPoints, currentPrice);
     const commentClusters = buildCommentClusters(processedComments);
     const bindingStats = getBindingStats(processedComments);
