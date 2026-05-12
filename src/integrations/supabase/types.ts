@@ -14,7 +14,145 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      users: {
+        Row: {
+          id: string
+          username: string
+          email: string
+          membership_type: string | null
+          created_at: string
+        }
+        Insert: {
+          id: string
+          username: string
+          email: string
+          membership_type?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          username?: string
+          email?: string
+          membership_type?: string | null
+          created_at?: string
+        }
+      }
+      comments: {
+        Row: {
+          id: string
+          user_id: string
+          asset_id: string
+          timeframe: string
+          price: number
+          text: string
+          sentiment: string
+          likes: number | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          asset_id: string
+          timeframe: string
+          price: number
+          text: string
+          sentiment: string
+          likes?: number | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          asset_id?: string
+          timeframe?: string
+          price?: number
+          text?: string
+          sentiment?: string
+          likes?: number | null
+          created_at?: string
+        }
+      }
+      votes: {
+        Row: {
+          id: string
+          user_id: string
+          comment_id: string
+          vote_type: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          comment_id: string
+          vote_type: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          comment_id?: string
+          vote_type?: string
+        }
+      }
+      watchlists: {
+        Row: {
+          id: string
+          user_id: string
+          asset_id: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          asset_id: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          asset_id?: string
+        }
+      }
+      market_insights: {
+        Row: {
+          asset_id: string
+          asset_name: string | null
+          pulse_score: number | null
+          sentiment: string | null
+          ai_summary: string | null
+          category_summaries: Json | null
+          bullish_count: number | null
+          bearish_count: number | null
+          neutral_count: number | null
+          sources: Json | null
+          fetched_at: string | null
+          created_at: string | null
+        }
+        Insert: {
+          asset_id: string
+          asset_name?: string | null
+          pulse_score?: number | null
+          sentiment?: string | null
+          ai_summary?: string | null
+          category_summaries?: Json | null
+          bullish_count?: number | null
+          bearish_count?: number | null
+          neutral_count?: number | null
+          sources?: Json | null
+          fetched_at?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          asset_id?: string
+          asset_name?: string | null
+          pulse_score?: number | null
+          sentiment?: string | null
+          ai_summary?: string | null
+          category_summaries?: Json | null
+          bullish_count?: number | null
+          bearish_count?: number | null
+          neutral_count?: number | null
+          sources?: Json | null
+          fetched_at?: string | null
+          created_at?: string | null
+        }
+      }
     }
     Views: {
       [_ in never]: never
