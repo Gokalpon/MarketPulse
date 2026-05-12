@@ -52,6 +52,7 @@ interface UserState {
   pinnedAssets: string[];
   userComments: UserComment[];
   isEditPinned: boolean;
+  currentUser: { id: string; email: string; username: string | null } | null;
 }
 
 interface CommentState {
@@ -123,6 +124,7 @@ interface AppStore extends UIState, MarketsState, AssetState, UserState, Comment
   setChartCrosshair: (v: ChartCrosshair | null) => void;
 
   // User Actions
+  setCurrentUser: (user: { id: string; email: string; username: string | null } | null) => void;
   setProfilePicture: (v: string | null) => void;
   setWatchlistAssets: (v: string[]) => void;
   addToWatchlist: (assetId: string) => void;
@@ -212,6 +214,7 @@ const initialUserState: UserState = {
   pinnedAssets: ["BTC", "AAPL", "GOLD"],
   userComments: [],
   isEditPinned: false,
+  currentUser: null,
 };
 
 const initialCommentState: CommentState = {
@@ -295,6 +298,7 @@ export const useAppStore = create<AppStore>()(
       setChartCrosshair: (v) => set({ chartCrosshair: v }),
 
       // User Actions
+      setCurrentUser: (user) => set({ currentUser: user }),
       setProfilePicture: (v) => set({ profilePicture: v }),
       setWatchlistAssets: (v) => set({ watchlistAssets: v }),
       addToWatchlist: (assetId) => set((s) => ({

@@ -5,15 +5,22 @@ import { APP_ASSETS } from "@/data/assets";
 
 interface OnboardingScreenProps {
   onLogin: () => void;
+  onEmailLogin?: (email: string, password: string, mode: 'signin' | 'signup') => Promise<string | null>;
   language: string;
   setLanguage: (lang: string) => void;
   t: Record<string, string>;
 }
 
-export const OnboardingScreen = ({ onLogin, language, setLanguage, t }: OnboardingScreenProps) => {
+export const OnboardingScreen = ({ onLogin, onEmailLogin, language, setLanguage, t }: OnboardingScreenProps) => {
   const [onboardingStep, setOnboardingStep] = useState(0);
   const [showLanguageMenu, setShowLanguageMenu] = useState(false);
   const [filling, setFilling] = useState(false);
+  const [authMode, setAuthMode] = useState<'email' | null>(null);
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [authSubMode, setAuthSubMode] = useState<'signin' | 'signup'>('signin');
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [authLoading, setAuthLoading] = useState(false);
 
   const handleGetStarted = () => {
     if (filling) return;
@@ -154,8 +161,60 @@ export const OnboardingScreen = ({ onLogin, language, setLanguage, t }: Onboardi
                       <span className="text-[9px] text-white/20 font-bold uppercase tracking-widest">or</span>
                       <div className="flex-1 h-[0.5px] bg-white/10" />
                     </div>
-                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={onLogin} className="w-full py-3.5 rounded-full text-[12px] font-black uppercase tracking-widest shadow-lg" style={{ background: "rgba(255,255,255,0.92)", color: "#1a1a1a" }}>{t.emailLogin}</motion.button>
-                    <button onClick={onLogin} className="w-full text-[11px] font-black text-white/50 uppercase tracking-[0.35em] hover:text-white/90 transition-colors mt-3 py-2">{t.skip}</button>
+                    {authMode === 'email' ? (
+                      <div className="space-y-2 pt-1">
+                        <div className="flex gap-1 mb-3 bg-white/5 rounded-full p-1">
+                          <button onClick={() => setAuthSubMode('signin')} className={`flex-1 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${authSubMode === 'signin' ? 'bg-white text-black' : 'text-white/50'}`}>{language === 'Turkish' ? 'Giriş' : 'Sign In'}</button>
+                          <button onClick={() => setAuthSubMode('signup')} className={`flex-1 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${authSubMode === 'signup' ? 'bg-white text-black' : 'text-white/50'}`}>{language === 'Turkish' ? 'Kayıt' : 'Sign Up'}</button>
+                        </div>
+                        <input
+                          type="email"
+                          autoComplete="email"
+                          placeholder="Email"
+                          value={authEmail}
+                          onChange={(e) => setAuthEmail(e.target.value)}
+                          className="w-full bg-white/[0.06] border border-white/[0.1] rounded-full px-4 py-3 text-[13px] text-foreground placeholder:text-white/30 focus:outline-none focus:border-white/30"
+                        />
+                        <input
+                          type="password"
+                          autoComplete={authSubMode === 'signup' ? 'new-password' : 'current-password'}
+                          placeholder={language === 'Turkish' ? 'Şifre' : 'Password'}
+                          value={authPassword}
+                          onChange={(e) => setAuthPassword(e.target.value)}
+                          className="w-full bg-white/[0.06] border border-white/[0.1] rounded-full px-4 py-3 text-[13px] text-foreground placeholder:text-white/30 focus:outline-none focus:border-white/30"
+                          onKeyDown={async (e) => {
+                            if (e.key === 'Enter' && onEmailLogin) {
+                              setAuthLoading(true); setAuthError(null);
+                              const err = await onEmailLogin(authEmail, authPassword, authSubMode);
+                              setAuthLoading(false);
+                              if (err) setAuthError(err);
+                            }
+                          }}
+                        />
+                        {authError && <p className="text-[11px] text-red-400 text-center px-2">{authError}</p>}
+                        <motion.button
+                          whileTap={{ scale: 0.98 }}
+                          disabled={authLoading || !authEmail || !authPassword}
+                          onClick={async () => {
+                            if (!onEmailLogin) return;
+                            setAuthLoading(true); setAuthError(null);
+                            const err = await onEmailLogin(authEmail, authPassword, authSubMode);
+                            setAuthLoading(false);
+                            if (err) setAuthError(err);
+                          }}
+                          className="w-full py-3.5 rounded-full text-[12px] font-black uppercase tracking-widest shadow-lg disabled:opacity-50"
+                          style={{ background: "rgba(255,255,255,0.92)", color: "#1a1a1a" }}
+                        >
+                          {authLoading ? '...' : authSubMode === 'signin' ? (language === 'Turkish' ? 'Giriş Yap' : 'Sign In') : (language === 'Turkish' ? 'Kayıt Ol' : 'Create Account')}
+                        </motion.button>
+                        <button onClick={() => { setAuthMode(null); setAuthError(null); }} className="w-full text-[11px] font-black text-white/30 uppercase tracking-[0.25em] hover:text-white/60 transition-colors py-2">{language === 'Turkish' ? 'Geri' : 'Back'}</button>
+                      </div>
+                    ) : (
+                      <>
+                        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setAuthMode('email')} className="w-full py-3.5 rounded-full text-[12px] font-black uppercase tracking-widest shadow-lg" style={{ background: "rgba(255,255,255,0.92)", color: "#1a1a1a" }}>{t.emailLogin}</motion.button>
+                        <button onClick={onLogin} className="w-full text-[11px] font-black text-white/50 uppercase tracking-[0.35em] hover:text-white/90 transition-colors mt-3 py-2">{t.skip}</button>
+                      </>
+                    )}
                   </div>
                 </div>
                 <motion.button whileHover={{ opacity: 1, letterSpacing: "0.5em" }} onClick={() => setOnboardingStep(0)} className="w-full text-white/20 text-[11px] font-black uppercase tracking-[0.4em] transition-all py-4">{t.back}</motion.button>

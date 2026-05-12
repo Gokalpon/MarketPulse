@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useCallback, useRef, Suspense } from "react";
+import React, { useEffect, useMemo, useCallback, useRef, Suspense, useState } from "react";
+import { supabase } from "@/lib/supabase";
 import { motion, AnimatePresence } from "motion/react";
 import { Brain, ChevronRight, Globe, Settings, Shield, Users, X } from "lucide-react";
 import { haptic } from "@/services/hapticService";
@@ -77,6 +78,7 @@ export default function MarketPulseApp({ containerHeight }: { containerHeight?: 
     isAnalyzing, setIsAnalyzing, aiAnalysis, setAiAnalysis,
     aiPulseCredits, aiPulseCreditDate, isProUnlocked,
     consumeAiPulseCredit, resetAiPulseCredits, setIsProUnlocked,
+    currentUser, setCurrentUser,
   } = useAppStore();
 
   const [isAssetPickerOpen, setIsAssetPickerOpen] = React.useState(false);
@@ -92,6 +94,55 @@ export default function MarketPulseApp({ containerHeight }: { containerHeight?: 
 
   const languageButtonRef = useRef<HTMLButtonElement>(null);
   const livePriceRef = useRef(0);
+
+  // Supabase auth: restore session on mount and listen for changes
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setIsLoggedIn(true);
+        setCurrentUser({
+          id: session.user.id,
+          email: session.user.email ?? "",
+          username: (session.user.user_metadata?.username as string) ?? null,
+        });
+      }
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setIsLoggedIn(true);
+        setCurrentUser({
+          id: session.user.id,
+          email: session.user.email ?? "",
+          username: (session.user.user_metadata?.username as string) ?? null,
+        });
+      } else {
+        setIsLoggedIn(false);
+        setCurrentUser(null);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleEmailLogin = useCallback(async (
+    email: string,
+    password: string,
+    mode: 'signin' | 'signup'
+  ): Promise<string | null> => {
+    if (mode === 'signup') {
+      const { error } = await supabase.auth.signUp({ email, password });
+      if (error) return error.message;
+      return null;
+    }
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) return error.message;
+    return null;
+  }, []);
+
+  const handleLogout = useCallback(async () => {
+    await supabase.auth.signOut();
+    setIsLoggedIn(false);
+    setCurrentUser(null);
+  }, [setIsLoggedIn, setCurrentUser]);
 
   useEffect(() => {
     if (showLanguageMenu && languageButtonRef.current) {
@@ -525,7 +576,7 @@ export default function MarketPulseApp({ containerHeight }: { containerHeight?: 
     return (
       <div className="bg-[var(--mp-bg)] flex justify-center overflow-x-hidden" style={containerStyle}>
         <div className="w-full max-w-[430px] relative overflow-hidden" style={containerStyle}>
-          <OnboardingScreen onLogin={() => setIsLoggedIn(true)} language={language} setLanguage={setLanguage} t={t} />
+          <OnboardingScreen onLogin={() => setIsLoggedIn(true)} onEmailLogin={handleEmailLogin} language={language} setLanguage={setLanguage} t={t} />
         </div>
       </div>
     );
@@ -701,6 +752,8 @@ export default function MarketPulseApp({ containerHeight }: { containerHeight?: 
                   langMenuPos={langMenuPos}
                   setLanguage={setLanguage}
                   setIsLoggedIn={setIsLoggedIn}
+                  onLogout={handleLogout}
+                  currentUser={currentUser}
                   handleProfilePicture={handleProfilePicture}
                 />
               )}

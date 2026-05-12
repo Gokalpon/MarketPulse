@@ -28,6 +28,8 @@ interface ProfileTabProps {
   langMenuPos: { top: number; left: number };
   setLanguage: (lang: string) => void;
   setIsLoggedIn: (v: boolean) => void;
+  onLogout?: () => void;
+  currentUser?: { id: string; email: string; username: string | null } | null;
   handleProfilePicture: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
@@ -38,8 +40,10 @@ export function ProfileTab({
   autoTranslate, setAutoTranslate,
   showLanguageMenu, setShowLanguageMenu,
   languageButtonRef, langMenuPos, setLanguage,
-  setIsLoggedIn, handleProfilePicture,
+  setIsLoggedIn, onLogout, currentUser, handleProfilePicture,
 }: ProfileTabProps) {
+  const displayName = currentUser?.username ?? (currentUser?.email ? currentUser.email.split('@')[0] : 'Gökalp');
+  const displayEmail = currentUser?.email ?? 'gokalp@example.com';
   // Animated stats counters
   const commentsCount = useCountUpAnimation({
     end: userComments.length,
@@ -80,7 +84,7 @@ export function ProfileTab({
                 <input id="profilePicInput" type="file" accept="image/*" className="hidden" onChange={handleProfilePicture} />
               </div>
               <div>
-                <h2 className="text-2xl font-black tracking-tight uppercase">Gökalp</h2>
+                <h2 className="text-2xl font-black tracking-tight uppercase">{displayName}</h2>
                 <p className="text-sm text-[var(--mp-text-secondary)]">{t.proMember} • {t.since} 2024</p>
               </div>
             </div>
@@ -153,7 +157,7 @@ export function ProfileTab({
                 { icon: <User className="w-5 h-5" />, title: t.accountSettings, page: "account" },
                 { icon: <Bell className="w-5 h-5" />, title: t.notifications, page: "notifications" },
                 { icon: <Shield className="w-5 h-5" />, title: t.privacySecurity, page: "privacy" },
-                { icon: <LogOut className="w-5 h-5" />, title: t.logout, color: "bg-[var(--mp-red)] text-background", onClick: () => { setIsLoggedIn(false); } },
+                { icon: <LogOut className="w-5 h-5" />, title: t.logout, color: "bg-[var(--mp-red)] text-background", onClick: () => { if (onLogout) onLogout(); else setIsLoggedIn(false); } },
               ].map((item, i) => (
                 <div key={i} onClick={item.onClick || (() => item.page && setProfilePage(item.page))} className="mp-glass-card rounded-[24px] p-5 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors">
                   <div className="flex items-center gap-4">
@@ -228,8 +232,8 @@ export function ProfileTab({
             <h3 className="text-xl font-black uppercase mb-6">{t.accountSettings}</h3>
             <div className="space-y-4">
               {[
-                { label: language === "Turkish" ? "Kullanıcı Adı" : "Username", value: "Gökalp" },
-                { label: "Email", value: "gokalp@example.com" },
+                { label: language === "Turkish" ? "Kullanıcı Adı" : "Username", value: displayName },
+                { label: "Email", value: displayEmail },
                 { label: language === "Turkish" ? "Üyelik" : "Membership", value: "Pro" },
                 { label: language === "Turkish" ? "Katılım Tarihi" : "Joined", value: "2024" },
               ].map((field, i) => (
